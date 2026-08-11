@@ -1,8 +1,9 @@
 namespace PdfOverlay.Core.Services;
 
 /// <summary>
-/// Portable-friendly temp workspace. Default location is a <c>temp</c> folder
-/// beside the executable so the app does not need a Windows install or registry.
+/// Portable-friendly temp workspace. Prefers a <c>temp</c> folder beside the
+/// executable (USB-friendly). If that location is not writable, falls back to a
+/// clearly named folder under the user profile temp area.
 /// </summary>
 public sealed class TempWorkspace : ITempWorkspace
 {
@@ -10,9 +11,10 @@ public sealed class TempWorkspace : ITempWorkspace
     private string _rootPath;
     private bool _disposed;
 
-    public TempWorkspace(string? rootPath = null)
+    public TempWorkspace(string? rootPath = null, bool isUsingFallbackLocation = false)
     {
-        _rootPath = NormalizeRoot(rootPath ?? GetDefaultRoot());
+        _rootPath = NormalizeRoot(rootPath ?? GetPreferredRoot());
+        IsUsingFallbackLocation = isUsingFallbackLocation;
         EnsureRootExists();
         // Remove leftovers from a previous crash before the new session starts.
         ClearContents();
@@ -27,12 +29,41 @@ public sealed class TempWorkspace : ITempWorkspace
         }
     }
 
-    public static string GetDefaultRoot()
+    public bool IsUsingFallbackLocation { get; private set; }
+
+    /// <summary>
+    /// Creates a workspace that prefers &lt;app&gt;\temp for USB/portable use, with a
+    /// writable fallback when the app folder cannot be written (for example a
+    /// read-only USB copy).
+    /// </summary>
+    public static TempWorkspace CreateForPortableApp()
+    {
+        var preferred = GetPreferredRoot();
+        if (CanUseAsTempRoot(preferred))
+        {
+            return new TempWorkspace(preferred, isUsingFallbackLocation: false);
+        }
+
+        var fallback = GetFallbackRoot();
+        return new TempWorkspace(fallback, isUsingFallbackLocation: true);
+    }
+
+    public static string GetPreferredRoot()
     {
         var baseDir = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar,
             Path.AltDirectorySeparatorChar);
         return Path.Combine(baseDir, "temp");
+    }
+
+    /// <summary>Kept for callers/tests that expect the portable default path.</summary>
+    public static string GetDefaultRoot() => GetPreferredRoot();
+
+    public static string GetFallbackRoot()
+    {
+        // Still a clearly named app folder; used only when the portable location
+        // is not writable. Cleared on exit / Clear Temporary Data.
+        return Path.Combine(Path.GetTempPath(), "PdfOverlay", "temp");
     }
 
     public string GetTempFilePath(string extension)
@@ -61,15 +92,22 @@ public sealed class TempWorkspace : ITempWorkspace
         lock (_gate)
         {
             var next = NormalizeRoot(newRootDirectory);
+            if (!CanUseAsTempRoot(next))
+            {
+                throw new IOException($"The folder is not writable: {next}");
+            }
+
             if (string.Equals(_rootPath, next, StringComparison.OrdinalIgnoreCase))
             {
                 EnsureRootExists();
+                IsUsingFallbackLocation = false;
                 return;
             }
 
             ClearContents();
             TryDeleteDirectory(_rootPath);
             _rootPath = next;
+            IsUsingFallbackLocation = false;
             EnsureRootExists();
         }
     }
@@ -92,11 +130,32 @@ public sealed class TempWorkspace : ITempWorkspace
             {
                 ClearContents();
                 TryDeleteDirectory(_rootPath);
+
+                // If we used the fallback tree (.../PdfOverlay/temp), remove empty parents.
+                TryRemoveEmptyParent(_rootPath);
+                TryRemoveEmptyParent(Path.GetDirectoryName(_rootPath));
             }
             finally
             {
                 _disposed = true;
             }
+        }
+    }
+
+    private static bool CanUseAsTempRoot(string rootPath)
+    {
+        try
+        {
+            var full = NormalizeRoot(rootPath);
+            Directory.CreateDirectory(full);
+            var probe = Path.Combine(full, $".write-test-{Guid.NewGuid():N}");
+            File.WriteAllText(probe, "ok");
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            return false;
         }
     }
 
@@ -170,6 +229,28 @@ public sealed class TempWorkspace : ITempWorkspace
             if (Directory.Exists(path))
             {
                 Directory.Delete(path, recursive: true);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private static void TryRemoveEmptyParent(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            return;
+        }
+
+        try
+        {
+            if (!Directory.EnumerateFileSystemEntries(path).Any())
+            {
+                Directory.Delete(path, recursive: false);
             }
         }
         catch (IOException)

@@ -50,5 +50,17 @@ public class TempWorkspaceTests
         Assert.False(File.Exists(scratch));
         Assert.True(Directory.Exists(second));
         Assert.False(Directory.Exists(first));
+        Assert.False(workspace.IsUsingFallbackLocation);
+    }
+
+    [Fact]
+    public void CreateForPortableApp_UsesWritablePreferredOrFallback()
+    {
+        using var workspace = TempWorkspace.CreateForPortableApp();
+        Assert.True(Directory.Exists(workspace.RootPath));
+
+        var probe = workspace.GetTempFilePath(".txt");
+        File.WriteAllText(probe, "usb-ok");
+        Assert.True(File.Exists(probe));
     }
 }

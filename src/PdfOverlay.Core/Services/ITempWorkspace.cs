@@ -8,6 +8,12 @@ public interface ITempWorkspace : IDisposable
 {
     string RootPath { get; }
 
+    /// <summary>
+    /// True when the preferred portable temp folder (beside the exe) was not writable
+    /// and a fallback location was used instead.
+    /// </summary>
+    bool IsUsingFallbackLocation { get; }
+
     /// <summary>Creates a uniquely named file path under the temp root (file is not created).</summary>
     string GetTempFilePath(string extension);
 

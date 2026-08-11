@@ -4,6 +4,14 @@ Portable, local-only PDF page overlay comparison tool (proof of concept).
 
 Open two PDFs from disk, pick one page from each, overlay them, and adjust opacity. Nothing is uploaded. Original PDFs are never modified. Temporary files stay in a dedicated folder and are cleared on exit.
 
+## Best way to use this at work
+
+If your PDFs live inside a company **remote desktop** session, run PdfOverlay **inside that session** after IT approval. That avoids emailing files to your personal laptop.
+
+You can also put the portable folder on a **USB drive** and give it to a colleague (for example Adam). They still need their own approval before using it on a company PC.
+
+See [DISTRIBUTION.md](DISTRIBUTION.md) and [IT-REVIEW.md](IT-REVIEW.md).
+
 ## Why this stack
 
 | Choice | Reason |
@@ -22,7 +30,10 @@ src/
   PdfOverlay.App/      # Avalonia desktop UI
 tests/
   PdfOverlay.Tests/
+dist/START-HERE.txt    # included in USB package
 PRIVACY.md
+IT-REVIEW.md
+DISTRIBUTION.md
 ```
 
 ## Develop (personal / approved machine)
@@ -36,34 +47,26 @@ dotnet test PdfOverlay.sln -c Release
 dotnet run --project src/PdfOverlay.App -c Release
 ```
 
-## Publish a portable Windows folder (no installer)
-
-On a Windows machine (or any machine that can target `win-x64`):
+## Make a USB-ready portable package
 
 ```bash
-dotnet publish src/PdfOverlay.App/PdfOverlay.App.csproj \
-  -c Release \
-  -r win-x64 \
-  --self-contained true \
-  -p:PublishSingleFile=false \
-  -o publish/win-x64
+./scripts/package-usb.sh
 ```
 
-Distribute the entire `publish/win-x64` folder. Recipients run `PdfOverlay.exe`. No installation step.
+Windows PowerShell:
 
-Optional single-file experiment:
-
-```bash
-dotnet publish src/PdfOverlay.App/PdfOverlay.App.csproj \
-  -c Release \
-  -r win-x64 \
-  --self-contained true \
-  -p:PublishSingleFile=true \
-  -p:IncludeNativeLibrariesForSelfExtract=true \
-  -o publish/win-x64-single
+```powershell
+.\scripts\package-usb.ps1
 ```
 
-Prefer the folder publish for clearer IT review of shipped files.
+Creates:
+
+```text
+publish/PdfOverlay-portable-win-x64.zip
+publish/PdfOverlay/   # unzipped folder you can copy to USB
+```
+
+Recipients open `START-HERE.txt`, get approval, then run `PdfOverlay.exe`. No installation step.
 
 ## PoC features
 
@@ -74,10 +77,11 @@ Prefer the folder publish for clearer IT review of shipped files.
 5. Choose temporary working folder
 6. Clear Temporary Data
 7. Cleanup of application temp data on exit
-8. No recent-files list, no uploads, no source-file writes
+8. USB-friendly portable folder/zip packaging
+9. No recent-files list, no uploads, no source-file writes
 
 See [PRIVACY.md](PRIVACY.md) for the full local-only policy.
 
 ## Important
 
-Create, build, and test on a personal or approved development computer. Deliver only the reviewed portable build to a company-owned PC.
+Create, build, and test on a personal or approved development computer. Deliver only the reviewed portable build to a company-owned PC, and only after approval.

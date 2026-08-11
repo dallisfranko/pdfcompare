@@ -38,10 +38,20 @@ The application itself is responsible for:
 
 ## Temporary working folder
 
-Default location (portable):
+Default location (portable / USB-friendly):
 
 ```text
 <folder-containing-PdfOverlay.exe>\temp\
 ```
 
+If that location is not writable (for example a read-only USB copy), the app falls back to:
+
+```text
+%TEMP%\PdfOverlay\temp\
+```
+
 Use **Choose Temporary Folder…** to relocate it. Use **Clear Temporary Data** at any time. Closing the app also clears application-created temporary contents.
+
+## USB sharing
+
+The portable folder may be copied to a USB drive and given to a colleague. Each person should still obtain company approval before running it on a company computer.

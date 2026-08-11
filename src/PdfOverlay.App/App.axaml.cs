@@ -19,13 +19,19 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        _tempWorkspace = new TempWorkspace();
+        _tempWorkspace = TempWorkspace.CreateForPortableApp();
         var pdfService = new PdfDocumentService();
         var overlayComposer = new OverlayComposer();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             _mainViewModel = new MainViewModel(_tempWorkspace, pdfService, overlayComposer);
+            if (_tempWorkspace.IsUsingFallbackLocation)
+            {
+                _mainViewModel.StatusMessage =
+                    "Portable temp folder was not writable (for example a read-only USB). " +
+                    $"Using fallback: {_tempWorkspace.RootPath}. You can choose another folder anytime.";
+            }
             var mainWindow = new MainWindow
             {
                 DataContext = _mainViewModel,
