@@ -1,0 +1,24 @@
+## Build
+bin/
+obj/
+publish/
+artifacts/
+*.user
+*.suo
+*.cache
+.vs/
+.idea/
+*.DotSettings.user
+
+## OS / tooling
+.DS_Store
+Thumbs.db
+*.log
+
+## App runtime scratch (never commit)
+**/temp/
+*.pdf
+
+## Test leftovers
+TestResults/
+coverage/

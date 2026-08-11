@@ -1,0 +1,52 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using PdfOverlay.App.ViewModels;
+using PdfOverlay.App.Views;
+using PdfOverlay.Core.Services;
+
+namespace PdfOverlay.App;
+
+public partial class App : Application
+{
+    private ITempWorkspace? _tempWorkspace;
+    private MainViewModel? _mainViewModel;
+
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        _tempWorkspace = new TempWorkspace();
+        var pdfService = new PdfDocumentService();
+        var overlayComposer = new OverlayComposer();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            _mainViewModel = new MainViewModel(_tempWorkspace, pdfService, overlayComposer);
+            var mainWindow = new MainWindow
+            {
+                DataContext = _mainViewModel,
+            };
+            desktop.MainWindow = mainWindow;
+            desktop.ShutdownRequested += OnShutdownRequested;
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnShutdownRequested(object? sender, ShutdownRequestedEventArgs e)
+    {
+        try
+        {
+            _mainViewModel?.Dispose();
+        }
+        finally
+        {
+            _tempWorkspace?.Dispose();
+            _tempWorkspace = null;
+        }
+    }
+}
