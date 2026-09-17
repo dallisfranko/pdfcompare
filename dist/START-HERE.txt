@@ -12,8 +12,16 @@ How to run
 2. Copy this entire folder somewhere you can run programs from, for example:
      - a folder on the work PC, or
      - a USB drive
-3. Double-click PdfOverlay.exe
-4. Open two local PDFs, pick pages, adjust opacity.
+4. Double-click PdfOverlay.exe
+5. Open two local PDFs, pick pages, adjust opacity/alignment.
+
+What you can do
+---------------
+- Overlay two PDF pages with opacity
+- Nudge / scale the top page for alignment
+- Zoom the view for inspection
+- Export / import a project file (settings only; PDFs are not copied)
+- Choose the temporary folder and clear temporary data
 
 Sharing with a colleague (USB)
 ------------------------------
