@@ -28,9 +28,15 @@
           <input id="fileA" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameA" class="filename">No file chosen</p>
-        <label class="row">Page
-          <select id="pageA" disabled></select>
-        </label>
+        <div class="page-nav">
+          <button type="button" id="prevA" class="btn small" disabled title="Previous page A">‹</button>
+          <label class="page-label">
+            Page
+            <select id="pageA" disabled></select>
+          </label>
+          <button type="button" id="nextA" class="btn small" disabled title="Next page A">›</button>
+        </div>
+        <p id="pageAMeta" class="page-meta">No pages</p>
       </section>
 
       <section class="panel">
@@ -40,9 +46,28 @@
           <input id="fileB" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameB" class="filename">No file chosen</p>
-        <label class="row">Page
-          <select id="pageB" disabled></select>
+        <div class="page-nav">
+          <button type="button" id="prevB" class="btn small" disabled title="Previous page B">‹</button>
+          <label class="page-label">
+            Page
+            <select id="pageB" disabled></select>
+          </label>
+          <button type="button" id="nextB" class="btn small" disabled title="Next page B">›</button>
+        </div>
+        <p id="pageBMeta" class="page-meta">No pages</p>
+      </section>
+
+      <section class="panel">
+        <h2>Multi-page compare</h2>
+        <label class="check-row">
+          <input id="linkPages" type="checkbox" checked />
+          Keep A and B on the same page number
         </label>
+        <div class="btn-row">
+          <button type="button" id="prevBoth" class="btn" disabled>‹ Prev page</button>
+          <button type="button" id="nextBoth" class="btn" disabled>Next page ›</button>
+        </div>
+        <p class="hint">Use Next/Prev to flip through plan sheets. Keyboard: ← → when Linked is on.</p>
       </section>
 
       <section class="panel">

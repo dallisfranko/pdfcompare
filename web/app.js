@@ -40,6 +40,15 @@ const els = {
   nameB: document.getElementById("nameB"),
   pageA: document.getElementById("pageA"),
   pageB: document.getElementById("pageB"),
+  pageAMeta: document.getElementById("pageAMeta"),
+  pageBMeta: document.getElementById("pageBMeta"),
+  prevA: document.getElementById("prevA"),
+  nextA: document.getElementById("nextA"),
+  prevB: document.getElementById("prevB"),
+  nextB: document.getElementById("nextB"),
+  prevBoth: document.getElementById("prevBoth"),
+  nextBoth: document.getElementById("nextBoth"),
+  linkPages: document.getElementById("linkPages"),
   opacity: document.getElementById("opacity"),
   opacityLabel: document.getElementById("opacityLabel"),
   status: document.getElementById("status"),
@@ -129,6 +138,7 @@ async function clearEverything() {
   els.opacityLabel.textContent = "85%";
   els.overlayCanvas.width = 0;
   els.overlayCanvas.height = 0;
+  updatePageControls();
   applyViewTransform();
   setStatus("Cleared. Nothing from this session is kept after you leave this page.");
 }
@@ -143,6 +153,84 @@ function fillPageSelect(select, count, selected) {
     select.appendChild(opt);
   }
   select.disabled = count < 1;
+}
+
+function updatePageControls() {
+  const hasA = state.pageCountA > 0;
+  const hasB = state.pageCountB > 0;
+
+  els.pageA.disabled = !hasA;
+  els.pageB.disabled = !hasB;
+  els.prevA.disabled = !hasA || state.pageA <= 1;
+  els.nextA.disabled = !hasA || state.pageA >= state.pageCountA;
+  els.prevB.disabled = !hasB || state.pageB <= 1;
+  els.nextB.disabled = !hasB || state.pageB >= state.pageCountB;
+
+  els.pageAMeta.textContent = hasA
+    ? `Page ${state.pageA} of ${state.pageCountA}`
+    : "No pages";
+  els.pageBMeta.textContent = hasB
+    ? `Page ${state.pageB} of ${state.pageCountB}`
+    : "No pages";
+
+  if (els.linkPages.checked && hasA && hasB) {
+    const page = Math.min(state.pageA, state.pageB);
+    const maxPage = Math.min(state.pageCountA, state.pageCountB);
+    els.prevBoth.disabled = page <= 1;
+    els.nextBoth.disabled = page >= maxPage;
+  } else {
+    els.prevBoth.disabled = true;
+    els.nextBoth.disabled = true;
+  }
+}
+
+async function setPage(which, page, { syncLinked = true, fit = true } = {}) {
+  if (which === "A") {
+    if (!state.pageCountA) return;
+    const next = Math.min(Math.max(1, page), state.pageCountA);
+    if (next === state.pageA && els.pageA.value === String(next)) {
+      updatePageControls();
+      return;
+    }
+    state.pageA = next;
+    els.pageA.value = String(next);
+    if (syncLinked && els.linkPages.checked && state.pageCountB) {
+      state.pageB = Math.min(next, state.pageCountB);
+      els.pageB.value = String(state.pageB);
+    }
+  } else {
+    if (!state.pageCountB) return;
+    const next = Math.min(Math.max(1, page), state.pageCountB);
+    if (next === state.pageB && els.pageB.value === String(next)) {
+      updatePageControls();
+      return;
+    }
+    state.pageB = next;
+    els.pageB.value = String(next);
+    if (syncLinked && els.linkPages.checked && state.pageCountA) {
+      state.pageA = Math.min(next, state.pageCountA);
+      els.pageA.value = String(state.pageA);
+    }
+  }
+
+  // Keep alignment only when both pages stay paired by the same sheet number.
+  // Changing pages usually means a new sheet, so clear alignment.
+  resetAlignment();
+  updatePageControls();
+  if (state.docA && state.docB) {
+    await refresh(true, fit);
+  }
+}
+
+async function stepPages(delta) {
+  if (els.linkPages.checked && state.pageCountA && state.pageCountB) {
+    const current = Math.min(state.pageA, state.pageB);
+    await setPage("A", current + delta, { syncLinked: true, fit: true });
+    return;
+  }
+  if (state.pageCountA) {
+    await setPage("A", state.pageA + delta, { syncLinked: false, fit: true });
+  }
 }
 
 async function loadPdf(file, which) {
@@ -170,6 +258,7 @@ async function loadPdf(file, which) {
   }
 
   resetAlignment();
+  updatePageControls();
   setStatus(`Loaded ${file.name} in memory only. Original file was not changed.`);
   await refresh(true, true);
 }
@@ -337,10 +426,12 @@ async function refresh(reRender = true, fit = false) {
 
     if (state.alignStep === "idle") {
       setStatus(
-        `Compare ready — A p.${state.pageA} (red) / B p.${state.pageB} (blue). ` +
-          `Drag to pan, scroll to zoom. Local only.`
+        `Compare ready — A p.${state.pageA}/${state.pageCountA} (red) · ` +
+          `B p.${state.pageB}/${state.pageCountB} (blue). ` +
+          `Use Next page or ← → to flip sheets.`
       );
     }
+    updatePageControls();
   } catch (err) {
     setStatus(`Could not render: ${err.message || err}`);
   }
@@ -524,15 +615,41 @@ els.fileB.addEventListener("change", async (e) => {
 });
 
 els.pageA.addEventListener("change", async () => {
-  state.pageA = Number(els.pageA.value) || 1;
-  resetAlignment();
-  await refresh(true, true);
+  await setPage("A", Number(els.pageA.value) || 1, { syncLinked: true, fit: true });
 });
 
 els.pageB.addEventListener("change", async () => {
-  state.pageB = Number(els.pageB.value) || 1;
-  resetAlignment();
-  await refresh(true, true);
+  await setPage("B", Number(els.pageB.value) || 1, { syncLinked: true, fit: true });
+});
+
+els.prevA.addEventListener("click", async () => {
+  await setPage("A", state.pageA - 1, { syncLinked: els.linkPages.checked, fit: true });
+});
+els.nextA.addEventListener("click", async () => {
+  await setPage("A", state.pageA + 1, { syncLinked: els.linkPages.checked, fit: true });
+});
+els.prevB.addEventListener("click", async () => {
+  await setPage("B", state.pageB - 1, { syncLinked: els.linkPages.checked, fit: true });
+});
+els.nextB.addEventListener("click", async () => {
+  await setPage("B", state.pageB + 1, { syncLinked: els.linkPages.checked, fit: true });
+});
+els.prevBoth.addEventListener("click", async () => stepPages(-1));
+els.nextBoth.addEventListener("click", async () => stepPages(1));
+els.linkPages.addEventListener("change", () => updatePageControls());
+
+window.addEventListener("keydown", async (event) => {
+  if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) {
+    return;
+  }
+  if (state.alignStep !== "idle") return;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    await stepPages(-1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    await stepPages(1);
+  }
 });
 
 els.opacity.addEventListener("input", async () => {
@@ -593,3 +710,4 @@ window.addEventListener("resize", () => {
 });
 
 setStatus("Choose two local PDFs to begin. Nothing is uploaded.");
+updatePageControls();
