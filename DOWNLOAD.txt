@@ -5,13 +5,15 @@ Two versions:
 1) WEB (easiest)  -> open the "web" folder, double-click Open-PdfOverlay-Web.bat
 2) WINDOWS APP    -> download the zip, unzip, double-click PdfOverlay.exe
 
-WEB STEPS
----------
-1) Get the "web" folder from GitHub branch cursor/pdf-overlay-poc-6751
-2) Double-click Open-PdfOverlay-Web.bat
-3) Choose two PDFs in the browser
-4) Click Clear everything when done
-5) Close the browser tab and the black window
+WEB STEPS (easiest)
+-------------------
+1) Download:
+   https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-web.zip
+2) Extract All
+3) Open PdfOverlay-web folder
+4) Double-click Open-PdfOverlay-Web.bat
+5) Choose two PDFs
+6) Clear everything when done
 
 Nothing is uploaded. Original PDFs are not replaced.
 
