@@ -32,6 +32,22 @@ public class OverlayComposerTests
         Assert.Equal(40, result.Height);
     }
 
+    [Fact]
+    public void Compose_AppliesOffset()
+    {
+        using var bottom = CreateSolidBitmap(20, 20, SKColors.Red);
+        using var top = CreateSolidBitmap(10, 10, SKColors.Blue);
+        var composer = new OverlayComposer();
+
+        using var result = composer.Compose(
+            bottom,
+            top,
+            new OverlayComposeOptions(TopOpacity: 1f, OffsetX: 10f, OffsetY: 5f));
+
+        Assert.Equal(SKColors.Red, result.GetPixel(2, 2));
+        Assert.Equal(SKColors.Blue, result.GetPixel(12, 7));
+    }
+
     private static SKBitmap CreateSolidBitmap(int width, int height, SKColor color)
     {
         var bitmap = new SKBitmap(width, height);

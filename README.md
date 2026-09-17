@@ -68,17 +68,19 @@ publish/PdfOverlay/   # unzipped folder you can copy to USB
 
 Recipients open `START-HERE.txt`, get approval, then run `PdfOverlay.exe`. No installation step.
 
-## PoC features
+## PoC / MVP features
 
 1. Open two local PDFs
 2. Display one selected page from each
-3. Overlay the pages
-4. Opacity adjustment for the top page
-5. Choose temporary working folder
-6. Clear Temporary Data
-7. Cleanup of application temp data on exit
-8. USB-friendly portable folder/zip packaging
-9. No recent-files list, no uploads, no source-file writes
+3. Overlay the pages with opacity control
+4. Align overlay page with nudge / scale controls
+5. View zoom for inspection
+6. Export / import project settings (JSON only — PDFs are never embedded)
+7. Choose temporary working folder
+8. Clear Temporary Data
+9. Cleanup of application temp data on exit
+10. USB-friendly portable folder/zip packaging
+11. No recent-files list, no uploads, no source-file writes
 
 See [PRIVACY.md](PRIVACY.md) for the full local-only policy.
 

@@ -22,10 +22,11 @@ public partial class App : Application
         _tempWorkspace = TempWorkspace.CreateForPortableApp();
         var pdfService = new PdfDocumentService();
         var overlayComposer = new OverlayComposer();
+        var projectExport = new ProjectExportService();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            _mainViewModel = new MainViewModel(_tempWorkspace, pdfService, overlayComposer);
+            _mainViewModel = new MainViewModel(_tempWorkspace, pdfService, overlayComposer, projectExport);
             if (_tempWorkspace.IsUsingFallbackLocation)
             {
                 _mainViewModel.StatusMessage =

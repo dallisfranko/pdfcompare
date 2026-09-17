@@ -8,6 +8,11 @@ namespace PdfOverlay.App.Services;
 
 public sealed class AvaloniaFileDialogService : IFileDialogService
 {
+    private static readonly FilePickerFileType ProjectType = new("PdfOverlay project")
+    {
+        Patterns = new[] { "*.pdfoverlay.json", "*.json" },
+    };
+
     private readonly Window _window;
 
     public AvaloniaFileDialogService(Window window)
@@ -31,8 +36,7 @@ public sealed class AvaloniaFileDialogService : IFileDialogService
             },
         });
 
-        var file = files.FirstOrDefault();
-        return file?.TryGetLocalPath();
+        return files.FirstOrDefault()?.TryGetLocalPath();
     }
 
     public async Task<string?> PickFolderAsync(string title)
@@ -43,7 +47,31 @@ public sealed class AvaloniaFileDialogService : IFileDialogService
             AllowMultiple = false,
         });
 
-        var folder = folders.FirstOrDefault();
-        return folder?.TryGetLocalPath();
+        return folders.FirstOrDefault()?.TryGetLocalPath();
+    }
+
+    public async Task<string?> PickProjectAsync(string title)
+    {
+        var files = await _window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = new List<FilePickerFileType> { ProjectType },
+        });
+
+        return files.FirstOrDefault()?.TryGetLocalPath();
+    }
+
+    public async Task<string?> SaveProjectAsync(string title, string suggestedFileName)
+    {
+        var file = await _window.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = title,
+            SuggestedFileName = suggestedFileName,
+            DefaultExtension = "pdfoverlay.json",
+            FileTypeChoices = new List<FilePickerFileType> { ProjectType },
+        });
+
+        return file?.TryGetLocalPath();
     }
 }
