@@ -19,7 +19,7 @@ const state = {
   pageB: 1,
   pageCountA: 0,
   pageCountB: 0,
-  opacity: 0.85,
+  opacity: 1,
   viewZoom: 1,
   panX: 0,
   panY: 0,
@@ -31,14 +31,16 @@ const state = {
   transform: null,
   alignStep: "idle", // idle | a1 | b1 | a2 | b2
   alignPoints: { a1: null, b1: null, a2: null, b2: null },
+  snapPreview: null, // { x, y, snapped } while aligning
 };
 
-const const els = {
+const els = {
   fileA: document.getElementById("fileA"),
   fileB: document.getElementById("fileB"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
-  pageBoth: document.getElementById("pageBoth"),
+  pageA: document.getElementById("pageA"),
+  pageB: document.getElementById("pageB"),
   pageMeta: document.getElementById("pageMeta"),
   prevBoth: document.getElementById("prevBoth"),
   nextBoth: document.getElementById("nextBoth"),
@@ -52,10 +54,15 @@ const const els = {
   zoomLabel: document.getElementById("zoomLabel"),
   alignStartBtn: document.getElementById("alignStartBtn"),
   alignCancelBtn: document.getElementById("alignCancelBtn"),
+  snapContent: document.getElementById("snapContent"),
 };
 
 function setStatus(message) {
   els.status.textContent = message;
+}
+
+function setViewportEmpty(isEmpty) {
+  els.viewport.classList.toggle("is-empty", isEmpty);
 }
 
 function setAlignStatus(message) {
@@ -96,6 +103,7 @@ function resetAlignment(keepMessage = false) {
   state.transform = null;
   state.alignStep = "idle";
   state.alignPoints = { a1: null, b1: null, a2: null, b2: null };
+  state.snapPreview = null;
   els.viewport.classList.remove("aligning");
   els.alignStartBtn.hidden = false;
   els.alignCancelBtn.hidden = true;
@@ -113,7 +121,7 @@ async function clearEverything() {
   state.pageB = 1;
   state.pageCountA = 0;
   state.pageCountB = 0;
-  state.opacity = 0.85;
+  state.opacity = 1;
   state.viewZoom = 1;
   state.panX = 0;
   state.panY = 0;
@@ -123,35 +131,18 @@ async function clearEverything() {
   els.fileB.value = "";
   els.nameA.textContent = "No file chosen";
   els.nameB.textContent = "No file chosen";
-  els.pageBoth.innerHTML = "";
-  els.pageBoth.disabled = true;
-  els.opacity.value = "0.85";
-  els.opacityLabel.textContent = "85%";
+  els.pageA.innerHTML = "";
+  els.pageB.innerHTML = "";
+  els.pageA.disabled = true;
+  els.pageB.disabled = true;
+  els.opacity.value = "1";
+  els.opacityLabel.textContent = "100%";
   els.overlayCanvas.width = 0;
   els.overlayCanvas.height = 0;
   updatePageControls();
   applyViewTransform();
+  setViewportEmpty(true);
   setStatus("Cleared. Nothing from this session is kept after you leave this page.");
-}
-
-/** Shared page count when comparing: both PDFs stay on the same sheet number. */
-function sharedPageCount() {
-  const hasA = state.pageCountA > 0;
-  const hasB = state.pageCountB > 0;
-  if (hasA && hasB) return Math.min(state.pageCountA, state.pageCountB);
-  if (hasA) return state.pageCountA;
-  if (hasB) return state.pageCountB;
-  return 0;
-}
-
-function sharedPage() {
-  const count = sharedPageCount();
-  if (!count) return 1;
-  const hasA = state.pageCountA > 0;
-  const hasB = state.pageCountB > 0;
-  if (hasA && hasB) return Math.min(state.pageA, state.pageB, count);
-  if (hasA) return Math.min(state.pageA, count);
-  return Math.min(state.pageB, count);
 }
 
 function fillPageSelect(select, count, selected) {
@@ -166,52 +157,63 @@ function fillPageSelect(select, count, selected) {
   select.disabled = count < 1;
 }
 
-function updatePageControls() {
-  const count = sharedPageCount();
-  const page = sharedPage();
-  const ready = state.pageCountA > 0 && state.pageCountB > 0;
-
-  if (els.pageBoth.options.length !== count) {
-    fillPageSelect(els.pageBoth, count, page);
+function syncSelect(select, count, page) {
+  if (select.options.length !== count) {
+    fillPageSelect(select, count, page);
   } else if (count > 0) {
-    els.pageBoth.value = String(page);
-  }
-
-  els.pageBoth.disabled = !ready;
-  els.prevBoth.disabled = !ready || page <= 1;
-  els.nextBoth.disabled = !ready || page >= count;
-
-  if (!state.pageCountA && !state.pageCountB) {
-    els.pageMeta.textContent = "Load both PDFs to flip sheets";
-  } else if (!ready) {
-    els.pageMeta.textContent = "Choose the other PDF to unlock sheet flip";
-  } else if (state.pageCountA !== state.pageCountB) {
-    els.pageMeta.textContent = `Sheet ${page} of ${count} (shared)`;
+    select.value = String(page);
+    select.disabled = false;
   } else {
-    els.pageMeta.textContent = `Sheet ${page} of ${count}`;
+    select.disabled = true;
   }
 }
 
-async function setSharedPage(page, { fit = true } = {}) {
-  const count = sharedPageCount();
-  if (!count) return;
+function updatePageControls() {
+  const hasA = state.pageCountA > 0;
+  const hasB = state.pageCountB > 0;
+  const ready = hasA && hasB;
 
-  const next = Math.min(Math.max(1, page), count);
-  const same =
-    (!state.pageCountA || state.pageA === next) &&
-    (!state.pageCountB || state.pageB === next) &&
-    els.pageBoth.value === String(next);
+  syncSelect(els.pageA, state.pageCountA, state.pageA);
+  syncSelect(els.pageB, state.pageCountB, state.pageB);
 
-  if (same) {
-    updatePageControls();
-    return;
+  els.prevBoth.disabled = !ready || (state.pageA <= 1 && state.pageB <= 1);
+  els.nextBoth.disabled =
+    !ready ||
+    (state.pageA >= state.pageCountA && state.pageB >= state.pageCountB);
+
+  if (!hasA && !hasB) {
+    els.pageMeta.textContent = "Load both PDFs to flip sheets";
+  } else if (!ready) {
+    els.pageMeta.textContent = "Choose the other PDF to unlock sheet flip";
+  } else {
+    els.pageMeta.innerHTML =
+      `<span class="meta-a">A ${state.pageA}/${state.pageCountA}</span>` +
+      ` · ` +
+      `<span class="meta-b">B ${state.pageB}/${state.pageCountB}</span>`;
+  }
+}
+
+async function setPage(which, page, { fit = true } = {}) {
+  if (which === "A") {
+    if (!state.pageCountA) return;
+    const next = Math.min(Math.max(1, page), state.pageCountA);
+    if (next === state.pageA && els.pageA.value === String(next)) {
+      updatePageControls();
+      return;
+    }
+    state.pageA = next;
+    els.pageA.value = String(next);
+  } else {
+    if (!state.pageCountB) return;
+    const next = Math.min(Math.max(1, page), state.pageCountB);
+    if (next === state.pageB && els.pageB.value === String(next)) {
+      updatePageControls();
+      return;
+    }
+    state.pageB = next;
+    els.pageB.value = String(next);
   }
 
-  if (state.pageCountA > 0) state.pageA = next;
-  if (state.pageCountB > 0) state.pageB = next;
-  els.pageBoth.value = String(next);
-
-  // Changing sheets usually means a new drawing — clear alignment.
   resetAlignment();
   updatePageControls();
   if (state.docA && state.docB) {
@@ -221,7 +223,22 @@ async function setSharedPage(page, { fit = true } = {}) {
 
 async function stepPages(delta) {
   if (!(state.pageCountA > 0 && state.pageCountB > 0)) return;
-  await setSharedPage(sharedPage() + delta, { fit: true });
+
+  const nextA = Math.min(Math.max(1, state.pageA + delta), state.pageCountA);
+  const nextB = Math.min(Math.max(1, state.pageB + delta), state.pageCountB);
+  if (nextA === state.pageA && nextB === state.pageB) {
+    updatePageControls();
+    return;
+  }
+
+  state.pageA = nextA;
+  state.pageB = nextB;
+  els.pageA.value = String(nextA);
+  els.pageB.value = String(nextB);
+
+  resetAlignment();
+  updatePageControls();
+  await refresh(true, true);
 }
 
 async function loadPdf(file, which) {
@@ -237,6 +254,7 @@ async function loadPdf(file, which) {
     state.pageCountA = pdf.numPages;
     state.pageA = 1;
     els.nameA.textContent = file.name;
+    fillPageSelect(els.pageA, pdf.numPages, 1);
   } else {
     state.docB = pdf;
     state.bytesB = bytes;
@@ -244,13 +262,7 @@ async function loadPdf(file, which) {
     state.pageCountB = pdf.numPages;
     state.pageB = 1;
     els.nameB.textContent = file.name;
-  }
-
-  // Keep both on the same sheet once both files are present.
-  if (state.pageCountA > 0 && state.pageCountB > 0) {
-    const page = sharedPage();
-    state.pageA = page;
-    state.pageB = page;
+    fillPageSelect(els.pageB, pdf.numPages, 1);
   }
 
   resetAlignment();
@@ -389,17 +401,174 @@ function drawAlignMarkers(ctx, which) {
         ];
   for (const [label, pt] of markers) {
     if (!pt) continue;
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 8 / Math.max(state.viewZoom, 0.2), 0, Math.PI * 2);
-    ctx.fillStyle = which === "A" ? "#c62828" : "#1565c0";
-    ctx.fill();
-    ctx.lineWidth = 2 / Math.max(state.viewZoom, 0.2);
-    ctx.strokeStyle = "#fff";
-    ctx.stroke();
-    ctx.fillStyle = "#111";
-    ctx.font = `${14 / Math.max(state.viewZoom, 0.2)}px sans-serif`;
-    ctx.fillText(label, pt.x + 10 / Math.max(state.viewZoom, 0.2), pt.y - 10 / Math.max(state.viewZoom, 0.2));
+    drawPointMarker(ctx, pt, label, which === "A" ? "#c62828" : "#1565c0", pt.snapped);
   }
+
+  if (
+    state.snapPreview &&
+    ((which === "A" && (state.alignStep === "a1" || state.alignStep === "a2")) ||
+      (which === "B" && (state.alignStep === "b1" || state.alignStep === "b2")))
+  ) {
+    drawSnapPreview(ctx, state.snapPreview);
+  }
+}
+
+function drawPointMarker(ctx, pt, label, color, snapped) {
+  const z = Math.max(state.viewZoom, 0.2);
+  ctx.beginPath();
+  ctx.arc(pt.x, pt.y, 8 / z, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 2 / z;
+  ctx.strokeStyle = "#fff";
+  ctx.stroke();
+  if (snapped) {
+    const s = 10 / z;
+    ctx.beginPath();
+    ctx.moveTo(pt.x - s, pt.y);
+    ctx.lineTo(pt.x + s, pt.y);
+    ctx.moveTo(pt.x, pt.y - s);
+    ctx.lineTo(pt.x, pt.y + s);
+    ctx.strokeStyle = "#ffd54f";
+    ctx.lineWidth = 2 / z;
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#111";
+  ctx.font = `${14 / z}px sans-serif`;
+  ctx.fillText(label, pt.x + 10 / z, pt.y - 10 / z);
+}
+
+function drawSnapPreview(ctx, preview) {
+  const z = Math.max(state.viewZoom, 0.2);
+  const r = (preview.snapped ? 10 : 6) / z;
+  ctx.beginPath();
+  ctx.arc(preview.x, preview.y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = preview.snapped ? "#ffd54f" : "rgba(255,255,255,0.7)";
+  ctx.lineWidth = 2 / z;
+  ctx.stroke();
+  if (preview.snapped) {
+    const s = 12 / z;
+    ctx.beginPath();
+    ctx.moveTo(preview.x - s, preview.y);
+    ctx.lineTo(preview.x + s, preview.y);
+    ctx.moveTo(preview.x, preview.y - s);
+    ctx.lineTo(preview.x, preview.y + s);
+    ctx.stroke();
+  }
+}
+
+/**
+ * Bluebeam-style snap: pull a click toward nearby ink endpoints, corners, and junctions.
+ * Works on the rasterized page (vector endpoints aren't available in the browser).
+ */
+function findSnapPoint(sourceCanvas, x, y) {
+  if (!sourceCanvas) return { x, y, snapped: false };
+
+  const screenRadius = 20;
+  const searchRadius = Math.max(10, Math.min(64, Math.round(screenRadius / Math.max(state.viewZoom, 0.15))));
+  const inkThreshold = 235;
+
+  const w = sourceCanvas.width;
+  const h = sourceCanvas.height;
+  const cx = Math.round(x);
+  const cy = Math.round(y);
+  if (cx < 0 || cy < 0 || cx >= w || cy >= h) return { x, y, snapped: false };
+
+  const x0 = Math.max(0, cx - searchRadius);
+  const y0 = Math.max(0, cy - searchRadius);
+  const x1 = Math.min(w - 1, cx + searchRadius);
+  const y1 = Math.min(h - 1, cy + searchRadius);
+  const rw = x1 - x0 + 1;
+  const rh = y1 - y0 + 1;
+
+  const ctx = sourceCanvas.getContext("2d", { willReadFrequently: true });
+  const img = ctx.getImageData(x0, y0, rw, rh);
+  const data = img.data;
+  const ink = new Uint8Array(rw * rh);
+
+  for (let i = 0, p = 0; i < ink.length; i += 1, p += 4) {
+    const lum = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
+    ink[i] = lum < inkThreshold ? 1 : 0;
+  }
+
+  const dirs = [
+    [-1, -1],
+    [0, -1],
+    [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+  ];
+
+  const candidates = [];
+  for (let ly = 1; ly < rh - 1; ly += 1) {
+    for (let lx = 1; lx < rw - 1; lx += 1) {
+      const idx = ly * rw + lx;
+      if (!ink[idx]) continue;
+
+      let neighbors = 0;
+      let transitions = 0;
+      let prev = ink[(ly + dirs[7][1]) * rw + (lx + dirs[7][0])];
+      for (const [dx, dy] of dirs) {
+        const v = ink[(ly + dy) * rw + (lx + dx)];
+        neighbors += v;
+        if (v !== prev) transitions += 1;
+        prev = v;
+      }
+
+      let score = 0;
+      if (neighbors === 1) score = 100; // endpoint
+      else if (neighbors === 2 && transitions >= 4) score = 85; // corner bend
+      else if (neighbors >= 3) score = 75; // junction / T / cross
+      else if (transitions >= 6) score = 65;
+
+      if (!score) continue;
+
+      const px = x0 + lx;
+      const py = y0 + ly;
+      const dist = Math.hypot(px - x, py - y);
+      if (dist <= searchRadius) candidates.push({ x: px, y: py, score, dist });
+    }
+  }
+
+  if (candidates.length) {
+    candidates.sort((a, b) => b.score - a.score || a.dist - b.dist);
+    const top = candidates[0].score;
+    const best = candidates
+      .filter((c) => c.score >= top - 25)
+      .sort((a, b) => a.dist - b.dist)[0];
+    return { x: best.x, y: best.y, snapped: true };
+  }
+
+  // Fallback: nearest ink pixel in the search window
+  let nearest = null;
+  for (let ly = 0; ly < rh; ly += 1) {
+    for (let lx = 0; lx < rw; lx += 1) {
+      if (!ink[ly * rw + lx]) continue;
+      const px = x0 + lx;
+      const py = y0 + ly;
+      const dist = Math.hypot(px - x, py - y);
+      if (!nearest || dist < nearest.dist) nearest = { x: px, y: py, dist };
+    }
+  }
+  if (nearest && nearest.dist <= searchRadius) {
+    return { x: nearest.x, y: nearest.y, snapped: true };
+  }
+  return { x, y, snapped: false };
+}
+
+function activeAlignBitmap() {
+  if (state.alignStep === "a1" || state.alignStep === "a2") return state.bitmapA;
+  if (state.alignStep === "b1" || state.alignStep === "b2") return state.bitmapB;
+  return null;
+}
+
+function applySnapIfEnabled(pt) {
+  if (!els.snapContent.checked) return { ...pt, snapped: false };
+  const bitmap = activeAlignBitmap();
+  return findSnapPoint(bitmap, pt.x, pt.y);
 }
 
 async function refresh(reRender = true, fit = false) {
@@ -417,13 +586,15 @@ async function refresh(reRender = true, fit = false) {
       state.tintedB = tintCanvas(canvasB, COLOR_B);
     }
     composeOverlay();
+    setViewportEmpty(false);
     if (fit) fitToViewport();
     else applyViewTransform();
 
     if (state.alignStep === "idle") {
       setStatus(
-        `Compare ready — sheet ${state.pageA} of ${Math.min(state.pageCountA, state.pageCountB)}. ` +
-          `Use ‹ › or ← → to flip both PDFs together.`
+        `Compare ready — A p.${state.pageA}/${state.pageCountA} (red) · ` +
+          `B p.${state.pageB}/${state.pageCountB} (blue). ` +
+          `Pick pages under each document, or use ‹ › / ← → to step both.`
       );
     }
     updatePageControls();
@@ -451,7 +622,11 @@ function startAlign() {
   els.alignStartBtn.hidden = true;
   els.alignCancelBtn.hidden = false;
   setAlignStatus("Step 1/4: click point 1 on RED (A)");
-  setStatus("Align mode: click a clear landmark on document A (red).");
+  setStatus(
+    els.snapContent.checked
+      ? "Align mode: hover near a corner/endpoint — yellow crosshair means snap is ready."
+      : "Align mode: click a clear landmark on document A (red)."
+  );
   composeOverlay();
   fitToViewport();
 }
@@ -463,18 +638,28 @@ function cancelAlign() {
 }
 
 function handleAlignClick(pt) {
+  const snapped = applySnapIfEnabled(pt);
+  state.snapPreview = null;
   const step = state.alignStep;
   if (step === "a1") {
-    state.alignPoints.a1 = pt;
+    state.alignPoints.a1 = snapped;
     state.alignStep = "b1";
-    setAlignStatus("Step 2/4: click the SAME point on BLUE (B)");
-    setStatus("Now click that same landmark on document B (blue).");
+    setAlignStatus(
+      snapped.snapped
+        ? "Step 2/4: click the SAME snapped point on BLUE (B)"
+        : "Step 2/4: click the SAME point on BLUE (B)"
+    );
+    setStatus(
+      snapped.snapped
+        ? "Snapped on A. Now click the matching landmark on B (blue)."
+        : "Now click that same landmark on document B (blue)."
+    );
     composeOverlay();
     fitToViewport();
     return;
   }
   if (step === "b1") {
-    state.alignPoints.b1 = pt;
+    state.alignPoints.b1 = snapped;
     state.alignStep = "a2";
     setAlignStatus("Step 3/4: click point 2 on RED (A)");
     setStatus("Click a second landmark on document A (red), far from the first.");
@@ -483,7 +668,7 @@ function handleAlignClick(pt) {
     return;
   }
   if (step === "a2") {
-    state.alignPoints.a2 = pt;
+    state.alignPoints.a2 = snapped;
     state.alignStep = "b2";
     setAlignStatus("Step 4/4: click the SAME point 2 on BLUE (B)");
     setStatus("Click the matching second landmark on document B (blue).");
@@ -492,7 +677,7 @@ function handleAlignClick(pt) {
     return;
   }
   if (step === "b2") {
-    state.alignPoints.b2 = pt;
+    state.alignPoints.b2 = snapped;
     try {
       state.transform = computeSimilarity(
         state.alignPoints.a1,
@@ -501,6 +686,7 @@ function handleAlignClick(pt) {
         state.alignPoints.b2
       );
       state.alignStep = "idle";
+      state.snapPreview = null;
       els.viewport.classList.remove("aligning");
       els.alignStartBtn.hidden = false;
       els.alignCancelBtn.hidden = true;
@@ -531,6 +717,7 @@ const pan = {
   origPanY: 0,
   pointerId: null,
 };
+let snapPreviewRaf = 0;
 
 els.viewport.addEventListener("pointerdown", (event) => {
   if (event.button !== 0) return;
@@ -545,14 +732,39 @@ els.viewport.addEventListener("pointerdown", (event) => {
 });
 
 els.viewport.addEventListener("pointermove", (event) => {
-  if (!pan.active || event.pointerId !== pan.pointerId) return;
-  const dx = event.clientX - pan.startX;
-  const dy = event.clientY - pan.startY;
-  if (Math.hypot(dx, dy) > 4) pan.moved = true;
-  if (state.alignStep === "idle" || pan.moved) {
-    state.panX = pan.origPanX + dx;
-    state.panY = pan.origPanY + dy;
-    applyViewTransform();
+  if (pan.active && event.pointerId === pan.pointerId) {
+    const dx = event.clientX - pan.startX;
+    const dy = event.clientY - pan.startY;
+    if (Math.hypot(dx, dy) > 4) pan.moved = true;
+    if (state.alignStep === "idle" || pan.moved) {
+      state.panX = pan.origPanX + dx;
+      state.panY = pan.origPanY + dy;
+      applyViewTransform();
+    }
+    return;
+  }
+
+  // Live snap preview while aligning (when not dragging).
+  if (state.alignStep !== "idle" && els.snapContent.checked) {
+    const preview = applySnapIfEnabled(canvasPointFromEvent(event));
+    const prev = state.snapPreview;
+    if (
+      !prev ||
+      prev.x !== preview.x ||
+      prev.y !== preview.y ||
+      prev.snapped !== preview.snapped
+    ) {
+      state.snapPreview = preview;
+      if (!snapPreviewRaf) {
+        snapPreviewRaf = requestAnimationFrame(() => {
+          snapPreviewRaf = 0;
+          if (state.alignStep !== "idle") composeOverlay();
+        });
+      }
+    }
+  } else if (state.snapPreview) {
+    state.snapPreview = null;
+    if (state.alignStep !== "idle") composeOverlay();
   }
 });
 
@@ -609,8 +821,12 @@ els.fileB.addEventListener("change", async (e) => {
   }
 });
 
-els.pageBoth.addEventListener("change", async () => {
-  await setSharedPage(Number(els.pageBoth.value) || 1, { fit: true });
+els.pageA.addEventListener("change", async () => {
+  await setPage("A", Number(els.pageA.value) || 1, { fit: true });
+});
+
+els.pageB.addEventListener("change", async () => {
+  await setPage("B", Number(els.pageB.value) || 1, { fit: true });
 });
 
 els.prevBoth.addEventListener("click", async () => stepPages(-1));

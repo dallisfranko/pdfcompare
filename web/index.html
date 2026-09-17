@@ -21,6 +21,18 @@
     </header>
 
     <aside class="sidebar">
+      <section class="panel panel-sheet">
+        <h2>Flip sheets</h2>
+        <div class="sheet-nav" role="group" aria-label="Page navigation">
+          <button type="button" id="prevBoth" class="btn sheet-btn" disabled title="Previous sheet (←)">‹</button>
+          <div class="sheet-center">
+            <p id="pageMeta" class="page-meta sheet-meta">Load both PDFs to flip sheets</p>
+          </div>
+          <button type="button" id="nextBoth" class="btn sheet-btn" disabled title="Next sheet (→)">›</button>
+        </div>
+        <p class="hint">Moves each PDF forward or back by one. Pick exact pages under A and B. Keyboard: ← →</p>
+      </section>
+
       <section class="panel">
         <h2>Document A <span class="chip red">red</span></h2>
         <label class="file-btn">
@@ -28,6 +40,10 @@
           <input id="fileA" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameA" class="filename">No file chosen</p>
+        <label class="page-label doc-page" for="pageA">
+          Page
+          <select id="pageA" disabled></select>
+        </label>
       </section>
 
       <section class="panel">
@@ -37,29 +53,17 @@
           <input id="fileB" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameB" class="filename">No file chosen</p>
-      </section>
-
-      <section class="panel panel-sheet">
-        <h2>Flip sheets</h2>
-        <div class="sheet-nav" role="group" aria-label="Page navigation">
-          <button type="button" id="prevBoth" class="btn sheet-btn" disabled title="Previous sheet (←)">‹</button>
-          <div class="sheet-center">
-            <label class="page-label" for="pageBoth">
-              Page
-              <select id="pageBoth" disabled></select>
-            </label>
-            <p id="pageMeta" class="page-meta">Load both PDFs to flip sheets</p>
-          </div>
-          <button type="button" id="nextBoth" class="btn sheet-btn" disabled title="Next sheet (→)">›</button>
-        </div>
-        <p class="hint">One control flips A and B together. Keyboard: ← →</p>
+        <label class="page-label doc-page" for="pageB">
+          Page
+          <select id="pageB" disabled></select>
+        </label>
       </section>
 
       <section class="panel">
         <h2>Compare</h2>
         <label class="stack">Blue layer strength
-          <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="0.85" />
-          <span id="opacityLabel">85%</span>
+          <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1" />
+          <span id="opacityLabel">100%</span>
         </label>
         <p class="hint">Red vs blue makes differences easy to spot (Bluebeam-style).</p>
       </section>
@@ -67,10 +71,15 @@
       <section class="panel">
         <h2>Align by points</h2>
         <p class="hint">Click the same two spots on A, then on B. No X/Y sliders needed.</p>
+        <label class="check-row">
+          <input id="snapContent" type="checkbox" checked />
+          Snap to content (corners &amp; endpoints)
+        </label>
         <button type="button" id="alignStartBtn" class="btn primary">Start 2-point align</button>
         <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel align</button>
         <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
         <p id="alignStatus" class="align-status">Alignment: none</p>
+        <p class="hint">Like Bluebeam Snap to Content: clicks pull to nearby line ends and corners on the drawing.</p>
       </section>
 
       <section class="panel">
@@ -98,7 +107,11 @@
 
     <main class="main">
       <p id="status" class="status">Choose two local PDFs to begin.</p>
-      <div id="viewport" class="viewport" title="Drag to pan · scroll to zoom">
+      <div id="viewport" class="viewport is-empty" title="Drag to pan · scroll to zoom">
+        <div id="emptyStage" class="empty-stage" aria-hidden="true">
+          <div class="empty-page"></div>
+          <p class="empty-label">Choose two local PDFs to begin</p>
+        </div>
         <div id="viewportInner" class="viewport-inner">
           <canvas id="overlayCanvas"></canvas>
         </div>
