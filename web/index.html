@@ -4,23 +4,38 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>PdfOverlay</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>PdfOverlay v0.4.0</title>
+  <link rel="stylesheet" href="styles.css?v=0.4.0" />
 </head>
 <body>
   <div class="app">
     <header class="header">
       <div>
-        <h1>PdfOverlay</h1>
+        <h1>
+          PdfOverlay
+          <span class="version" id="appVersion" title="Build version — if this is missing, you are on an old cached copy">v0.4.0</span>
+        </h1>
         <p class="tagline">
           Compare large plans in your browser. PDFs are not uploaded or overwritten.
           <span class="legend"><span class="swatch red"></span> A &nbsp; <span class="swatch blue"></span> B &nbsp; dark = same</span>
         </p>
       </div>
-      <button type="button" id="clearAllBtn" class="btn danger">Clear everything</button>
+      <button type="button" id="clearAllBtn" class="btn danger">Clear</button>
     </header>
 
     <aside class="sidebar">
+      <section class="panel panel-sheet">
+        <h2>Flip sheets</h2>
+        <div class="sheet-nav" role="group" aria-label="Page navigation">
+          <button type="button" id="prevBoth" class="btn sheet-btn" disabled title="Previous sheet (←)">‹</button>
+          <div class="sheet-center">
+            <p id="pageMeta" class="page-meta sheet-meta">Load both PDFs to flip sheets</p>
+          </div>
+          <button type="button" id="nextBoth" class="btn sheet-btn" disabled title="Next sheet (→)">›</button>
+        </div>
+        <p class="hint">Moves each PDF forward or back by one. Pick exact pages under A and B. Keyboard: ← →</p>
+      </section>
+
       <section class="panel">
         <h2>Document A <span class="chip red">red</span></h2>
         <label class="file-btn">
@@ -28,15 +43,10 @@
           <input id="fileA" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameA" class="filename">No file chosen</p>
-        <div class="page-nav">
-          <button type="button" id="prevA" class="btn small" disabled title="Previous page A">‹</button>
-          <label class="page-label">
-            Page
-            <select id="pageA" disabled></select>
-          </label>
-          <button type="button" id="nextA" class="btn small" disabled title="Next page A">›</button>
-        </div>
-        <p id="pageAMeta" class="page-meta">No pages</p>
+        <label class="page-label doc-page" for="pageA">
+          Page
+          <select id="pageA" disabled></select>
+        </label>
       </section>
 
       <section class="panel">
@@ -46,35 +56,17 @@
           <input id="fileB" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameB" class="filename">No file chosen</p>
-        <div class="page-nav">
-          <button type="button" id="prevB" class="btn small" disabled title="Previous page B">‹</button>
-          <label class="page-label">
-            Page
-            <select id="pageB" disabled></select>
-          </label>
-          <button type="button" id="nextB" class="btn small" disabled title="Next page B">›</button>
-        </div>
-        <p id="pageBMeta" class="page-meta">No pages</p>
-      </section>
-
-      <section class="panel">
-        <h2>Multi-page compare</h2>
-        <label class="check-row">
-          <input id="linkPages" type="checkbox" checked />
-          Keep A and B on the same page number
+        <label class="page-label doc-page" for="pageB">
+          Page
+          <select id="pageB" disabled></select>
         </label>
-        <div class="btn-row">
-          <button type="button" id="prevBoth" class="btn" disabled>‹ Prev page</button>
-          <button type="button" id="nextBoth" class="btn" disabled>Next page ›</button>
-        </div>
-        <p class="hint">Use Next/Prev to flip through plan sheets. Keyboard: ← → when Linked is on.</p>
       </section>
 
       <section class="panel">
         <h2>Compare</h2>
         <label class="stack">Blue layer strength
-          <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="0.85" />
-          <span id="opacityLabel">85%</span>
+          <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1" />
+          <span id="opacityLabel">100%</span>
         </label>
         <p class="hint">Red vs blue makes differences easy to spot (Bluebeam-style).</p>
       </section>
@@ -82,10 +74,15 @@
       <section class="panel">
         <h2>Align by points</h2>
         <p class="hint">Click the same two spots on A, then on B. No X/Y sliders needed.</p>
+        <label class="check-row">
+          <input id="snapContent" type="checkbox" checked />
+          Snap to content (corners &amp; endpoints)
+        </label>
         <button type="button" id="alignStartBtn" class="btn primary">Start 2-point align</button>
         <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel align</button>
         <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
         <p id="alignStatus" class="align-status">Alignment: none</p>
+        <p class="hint">Like Bluebeam Snap to Content: clicks pull to nearby line ends and corners on the drawing.</p>
       </section>
 
       <section class="panel">
@@ -113,7 +110,11 @@
 
     <main class="main">
       <p id="status" class="status">Choose two local PDFs to begin.</p>
-      <div id="viewport" class="viewport" title="Drag to pan · scroll to zoom">
+      <div id="viewport" class="viewport is-empty" title="Drag to pan · scroll to zoom">
+        <div id="emptyStage" class="empty-stage" aria-hidden="true">
+          <div class="empty-page"></div>
+          <p class="empty-label">Choose two local PDFs to begin</p>
+        </div>
         <div id="viewportInner" class="viewport-inner">
           <canvas id="overlayCanvas"></canvas>
         </div>
@@ -121,6 +122,6 @@
     </main>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=0.4.0"></script>
 </body>
 </html>
