@@ -184,13 +184,6 @@ h1 {
   border-radius: 4px;
 }
 
-.align-ref-hint {
-  margin: 8px 0 0;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: #c5ccd4;
-}
-
 .empty-stage {
   display: none;
   position: absolute;
@@ -408,14 +401,6 @@ h1 {
 }
 
 .btn:hover, .file-btn:hover { filter: brightness(0.97); }
-
-.panel.privacy ul {
-  margin: 0;
-  padding-left: 1.1rem;
-  color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
 
 select, input[type="range"] { width: 100%; }
 
