@@ -1,7 +1,7 @@
 import * as pdfjsLib from "./vendor/pdfjs/pdf.min.mjs";
 
 /** Bump this when shipping UI changes so users can confirm they loaded the new build. */
-const APP_VERSION = "0.6.0";
+const APP_VERSION = "0.7.0";
 const MAX_VIEW_ZOOM = 8;
 const MIN_VIEW_ZOOM = 0.05;
 /** Marker size in screen pixels (does not grow when you zoom the drawing). */
@@ -27,6 +27,8 @@ const state = {
   pageCountA: 0,
   pageCountB: 0,
   opacity: 1,
+  showA: true,
+  showB: true,
   viewZoom: 1,
   panX: 0,
   panY: 0,
@@ -53,6 +55,10 @@ const els = {
   nextBoth: document.getElementById("nextBoth"),
   opacity: document.getElementById("opacity"),
   opacityLabel: document.getElementById("opacityLabel"),
+  opacityStack: document.getElementById("opacityStack"),
+  toggleA: document.getElementById("toggleA"),
+  toggleB: document.getElementById("toggleB"),
+  showBothBtn: document.getElementById("showBothBtn"),
   status: document.getElementById("status"),
   alignStatus: document.getElementById("alignStatus"),
   overlayCanvas: document.getElementById("overlayCanvas"),
@@ -183,6 +189,8 @@ async function clearEverything() {
   state.pageCountA = 0;
   state.pageCountB = 0;
   state.opacity = 1;
+  state.showA = true;
+  state.showB = true;
   state.viewZoom = 1;
   state.panX = 0;
   state.panY = 0;
@@ -198,6 +206,7 @@ async function clearEverything() {
   els.pageB.disabled = true;
   els.opacity.value = "1";
   els.opacityLabel.textContent = "100%";
+  updateLayerButtons();
   els.overlayCanvas.width = 0;
   els.overlayCanvas.height = 0;
   updatePageControls();
@@ -385,34 +394,47 @@ function computeSimilarity(a1, a2, b1, b2) {
 }
 
 function composeOverlay() {
-  const canvasA = state.tintedA;
-  const canvasB = state.tintedB;
-  if (!canvasA || !canvasB) return;
+  const naturalA = state.bitmapA;
+  const naturalB = state.bitmapB;
+  const tintedA = state.tintedA;
+  const tintedB = state.tintedB;
+  if (!naturalA || !naturalB || !tintedA || !tintedB) return;
 
-  // During alignment steps, show only the active document so clicks are obvious.
+  // During alignment, show that document in normal black for clear landmarks.
   if (state.alignStep === "a1" || state.alignStep === "a2") {
-    els.overlayCanvas.width = canvasA.width;
-    els.overlayCanvas.height = canvasA.height;
-    const ctx = els.overlayCanvas.getContext("2d");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvasA.width, canvasA.height);
-    ctx.drawImage(canvasA, 0, 0);
-    drawAlignMarkers(ctx, "A");
+    drawSoloPage(naturalA, "A");
     return;
   }
   if (state.alignStep === "b1" || state.alignStep === "b2") {
-    els.overlayCanvas.width = canvasB.width;
-    els.overlayCanvas.height = canvasB.height;
-    const ctx = els.overlayCanvas.getContext("2d");
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvasB.width, canvasB.height);
-    ctx.drawImage(canvasB, 0, 0);
-    drawAlignMarkers(ctx, "B");
+    drawSoloPage(naturalB, "B");
     return;
   }
 
-  const width = Math.max(canvasA.width, canvasB.width);
-  const height = Math.max(canvasA.height, canvasB.height);
+  const showA = state.showA;
+  const showB = state.showB;
+
+  // Solo: normal black plan (not red/blue tint).
+  if (showA && !showB) {
+    drawSoloPage(naturalA, null);
+    return;
+  }
+  if (!showA && showB) {
+    drawSoloPage(naturalB, null);
+    return;
+  }
+  if (!showA && !showB) {
+    const out = els.overlayCanvas;
+    out.width = Math.max(naturalA.width, naturalB.width);
+    out.height = Math.max(naturalA.height, naturalB.height);
+    const ctx = out.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, out.width, out.height);
+    return;
+  }
+
+  // Both on: Bluebeam-style tinted overlay.
+  const width = Math.max(tintedA.width, tintedB.width);
+  const height = Math.max(tintedA.height, tintedB.height);
   const out = els.overlayCanvas;
   out.width = width;
   out.height = height;
@@ -420,10 +442,9 @@ function composeOverlay() {
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
-  // Multiply blend: matching content goes dark; unique content stays red or blue.
   ctx.globalCompositeOperation = "source-over";
   ctx.globalAlpha = 1;
-  ctx.drawImage(canvasA, 0, 0);
+  ctx.drawImage(tintedA, 0, 0);
 
   ctx.save();
   ctx.globalCompositeOperation = "multiply";
@@ -432,7 +453,6 @@ function composeOverlay() {
     const t = state.transform;
     const cos = Math.cos(t.rot);
     const sin = Math.sin(t.rot);
-    // Maps B local coords into A space.
     ctx.setTransform(
       t.scale * cos,
       t.scale * sin,
@@ -441,11 +461,49 @@ function composeOverlay() {
       t.a1.x - (t.b1.x * t.scale * cos - t.b1.y * t.scale * sin),
       t.a1.y - (t.b1.x * t.scale * sin + t.b1.y * t.scale * cos)
     );
-    ctx.drawImage(canvasB, 0, 0);
+    ctx.drawImage(tintedB, 0, 0);
   } else {
-    ctx.drawImage(canvasB, 0, 0);
+    ctx.drawImage(tintedB, 0, 0);
   }
   ctx.restore();
+}
+
+function drawSoloPage(source, alignWhich) {
+  els.overlayCanvas.width = source.width;
+  els.overlayCanvas.height = source.height;
+  const ctx = els.overlayCanvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, source.width, source.height);
+  ctx.drawImage(source, 0, 0);
+  if (alignWhich) drawAlignMarkers(ctx, alignWhich);
+}
+
+function updateLayerButtons() {
+  els.toggleA.classList.toggle("active", state.showA);
+  els.toggleB.classList.toggle("active", state.showB);
+  els.toggleA.setAttribute("aria-pressed", String(state.showA));
+  els.toggleB.setAttribute("aria-pressed", String(state.showB));
+  const both = state.showA && state.showB;
+  if (els.opacityStack) {
+    els.opacityStack.classList.toggle("is-disabled", !both);
+  }
+}
+
+function setLayerVisibility(showA, showB, { announce = true } = {}) {
+  // Keep at least one layer on.
+  if (!showA && !showB) {
+    if (state.showA) showB = true;
+    else showA = true;
+  }
+  state.showA = showA;
+  state.showB = showB;
+  updateLayerButtons();
+  composeOverlay();
+  if (announce && state.alignStep === "idle") {
+    if (showA && showB) setStatus("Compare overlay (A red · B blue)");
+    else if (showA) setStatus("Showing A only (normal black)");
+    else setStatus("Showing B only (normal black)");
+  }
 }
 
 function drawAlignMarkers(ctx, which) {
@@ -984,7 +1042,26 @@ window.addEventListener("keydown", async (event) => {
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
     await stepPages(1);
+  } else if (event.key === "1") {
+    event.preventDefault();
+    setLayerVisibility(true, false);
+  } else if (event.key === "2") {
+    event.preventDefault();
+    setLayerVisibility(false, true);
+  } else if (event.key === "3") {
+    event.preventDefault();
+    setLayerVisibility(true, true);
   }
+});
+
+els.toggleA.addEventListener("click", () => {
+  setLayerVisibility(!state.showA, state.showB);
+});
+els.toggleB.addEventListener("click", () => {
+  setLayerVisibility(state.showA, !state.showB);
+});
+els.showBothBtn.addEventListener("click", () => {
+  setLayerVisibility(true, true);
 });
 
 els.opacity.addEventListener("input", async () => {
@@ -1046,4 +1123,5 @@ window.addEventListener("resize", () => {
 
 setStatus(`Choose two PDFs to begin. (v${APP_VERSION})`);
 updatePageControls();
+updateLayerButtons();
 console.info(`[PdfOverlay] loaded v${APP_VERSION}`);
