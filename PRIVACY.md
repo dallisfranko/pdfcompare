@@ -52,6 +52,10 @@ If that location is not writable (for example a read-only USB copy), the app fal
 
 Use **Choose Temporary Folder…** to relocate it. Use **Clear Temporary Data** at any time. Closing the app also clears application-created temporary contents.
 
+## Web version
+
+The browser version under `web/` keeps PDFs in tab memory only, does not upload them, does not overwrite originals, and clears when you use **Clear everything** or close the tab.
+
 ## USB sharing
 
 The portable folder may be copied to a USB drive and given to a colleague. Each person should still obtain company approval before running it on a company computer.

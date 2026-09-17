@@ -1,19 +1,26 @@
-HOW TO GET PDFOVERLAY ON YOUR COMPUTER
-======================================
+HOW TO USE PDFOVERLAY (NO CODING)
+=================================
 
-No coding needed.
+Two versions:
+1) WEB (easiest)  -> open the "web" folder, double-click Open-PdfOverlay-Web.bat
+2) WINDOWS APP    -> download the zip, unzip, double-click PdfOverlay.exe
 
-1) On your personal computer, open this page (stay logged into GitHub):
+WEB STEPS
+---------
+1) Get the "web" folder from GitHub branch cursor/pdf-overlay-poc-6751
+2) Double-click Open-PdfOverlay-Web.bat
+3) Choose two PDFs in the browser
+4) Click Clear everything when done
+5) Close the browser tab and the black window
 
+Nothing is uploaded. Original PDFs are not replaced.
+
+WINDOWS APP STEPS
+-----------------
+1) Open:
    https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-portable-win-x64.zip
+2) Download raw file
+3) Extract All
+4) Double-click PdfOverlay.exe
 
-2) Click "Download raw file" and save the zip.
-
-3) In Downloads, right-click the zip → Extract All → Extract.
-
-4) Open the folder and double-click PdfOverlay.exe
-
-If Windows blocks it: More info → Run anyway.
-
-USB for Adam: copy the whole folder to a USB stick.
-He still needs IT approval before using it on a work computer.
+USB for Adam: copy the whole folder. He still needs IT approval for a work PC.
