@@ -1,21 +1,52 @@
 # Download PdfOverlay (no coding)
 
-## Windows — ready-to-run app
+You do **not** need to be a programmer.
 
-1. Download this file on your personal computer:
+## On your personal Windows computer
 
-**[Download PdfOverlay for Windows (zip)](https://github.com/dallisfranko/pdfcompare/raw/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-portable-win-x64.zip)**
+### 1) Open this page while logged into GitHub
 
-2. Unzip it (right-click → Extract All).
-3. Open the folder and double-click **PdfOverlay.exe**.
+https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-portable-win-x64.zip
 
-If Windows shows SmartScreen, choose **More info** → **Run anyway**.
+### 2) Download the file
 
-That’s it. You do not need Python, Node, Visual Studio, or any developer tools.
+- Click the **Download raw file** button (download icon on that page)
+- Save `PdfOverlay-portable-win-x64.zip`
 
-## Share on a USB drive
+### 3) Unzip it
 
-Copy the whole unzipped folder to a USB stick and give it to a coworker.  
-Each person still needs company IT approval before using it on a work computer.
+- Open your **Downloads** folder
+- Right-click the zip → **Extract All…** → **Extract**
 
-More detail: [DOWNLOAD.txt](DOWNLOAD.txt) · [IT-REVIEW.md](IT-REVIEW.md) · [DISTRIBUTION.md](DISTRIBUTION.md)
+### 4) Run the app
+
+- Open the unzipped folder
+- Double-click **PdfOverlay.exe**
+
+If Windows says “Windows protected your PC”:
+
+1. Click **More info**
+2. Click **Run anyway**
+
+That is normal for a new unsigned app.
+
+## Alternate path from the pull request
+
+1. Open https://github.com/dallisfranko/pdfcompare/pull/1
+2. Click the **Files changed** tab, or open the branch `cursor/pdf-overlay-poc-6751`
+3. Go into the `releases` folder
+4. Open `PdfOverlay-portable-win-x64.zip` and download it
+
+## USB for a coworker (Adam)
+
+1. Copy the **whole unzipped folder** to a USB drive
+2. Give them the USB
+3. They still need company IT approval before using it on a work computer
+4. After approval: open the folder → double-click `PdfOverlay.exe`
+
+## What you need
+
+- A Windows PC
+- GitHub login access to this repository
+
+You do **not** need Python, coding apps, or Visual Studio.
