@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>PdfOverlay (local web)</title>
+  <title>PdfOverlay</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,14 +12,17 @@
     <header class="header">
       <div>
         <h1>PdfOverlay</h1>
-        <p class="tagline">Website tool — choose PDFs from your computer. They are not uploaded or overwritten. Closing this tab clears everything.</p>
+        <p class="tagline">
+          Compare large plans in your browser. PDFs are not uploaded or overwritten.
+          <span class="legend"><span class="swatch red"></span> A &nbsp; <span class="swatch blue"></span> B &nbsp; dark = same</span>
+        </p>
       </div>
       <button type="button" id="clearAllBtn" class="btn danger">Clear everything</button>
     </header>
 
     <aside class="sidebar">
       <section class="panel">
-        <h2>Document A (base)</h2>
+        <h2>Document A <span class="chip red">red</span></h2>
         <label class="file-btn">
           Choose PDF A
           <input id="fileA" type="file" accept="application/pdf,.pdf" />
@@ -31,7 +34,7 @@
       </section>
 
       <section class="panel">
-        <h2>Document B (overlay)</h2>
+        <h2>Document B <span class="chip blue">blue</span></h2>
         <label class="file-btn">
           Choose PDF B
           <input id="fileB" type="file" accept="application/pdf,.pdf" />
@@ -43,68 +46,51 @@
       </section>
 
       <section class="panel">
-        <h2>Overlay</h2>
-        <label class="stack">Opacity (B)
-          <input id="opacity" type="range" min="0" max="1" step="0.05" value="0.5" />
-          <span id="opacityLabel">50%</span>
+        <h2>Compare</h2>
+        <label class="stack">Blue layer strength
+          <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="0.85" />
+          <span id="opacityLabel">85%</span>
         </label>
-        <label class="stack">Offset X
-          <input id="offsetX" type="range" min="-200" max="200" step="1" value="0" />
-          <span id="offsetXLabel">0</span>
-        </label>
-        <label class="stack">Offset Y
-          <input id="offsetY" type="range" min="-200" max="200" step="1" value="0" />
-          <span id="offsetYLabel">0</span>
-        </label>
-        <label class="stack">Scale B
-          <input id="scaleB" type="range" min="0.5" max="1.5" step="0.01" value="1" />
-          <span id="scaleBLabel">1.00</span>
-        </label>
-        <div class="btn-row">
-          <button type="button" id="nudgeLeft" class="btn small">←</button>
-          <button type="button" id="nudgeRight" class="btn small">→</button>
-          <button type="button" id="nudgeUp" class="btn small">↑</button>
-          <button type="button" id="nudgeDown" class="btn small">↓</button>
-        </div>
-        <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
+        <p class="hint">Red vs blue makes differences easy to spot (Bluebeam-style).</p>
       </section>
 
       <section class="panel">
-        <h2>View</h2>
+        <h2>Align by points</h2>
+        <p class="hint">Click the same two spots on A, then on B. No X/Y sliders needed.</p>
+        <button type="button" id="alignStartBtn" class="btn primary">Start 2-point align</button>
+        <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel align</button>
+        <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
+        <p id="alignStatus" class="align-status">Alignment: none</p>
+      </section>
+
+      <section class="panel">
+        <h2>View (PDF area only)</h2>
         <div class="btn-row">
           <button type="button" id="zoomOut" class="btn small">−</button>
           <button type="button" id="zoomIn" class="btn small">+</button>
+          <button type="button" id="zoomFit" class="btn">Fit</button>
           <button type="button" id="zoomReset" class="btn">100%</button>
         </div>
         <p id="zoomLabel">100%</p>
+        <p class="hint">Drag to pan. Scroll wheel zooms the drawing, not the sidebar.</p>
       </section>
 
       <section class="panel privacy">
         <h2>Privacy</h2>
         <ul>
           <li>Files stay in this browser tab only</li>
-          <li>Nothing is sent to a server</li>
+          <li>Nothing is uploaded</li>
           <li>Original PDFs are never modified</li>
-          <li>No recent-files list is saved</li>
           <li>Clear or close the tab to discard everything</li>
         </ul>
-        <p style="margin:8px 0 0;"><a href="privacy.html">More privacy detail</a></p>
       </section>
     </aside>
 
     <main class="main">
       <p id="status" class="status">Choose two local PDFs to begin.</p>
-      <div class="stage-wrap">
-        <canvas id="overlayCanvas"></canvas>
-      </div>
-      <div class="previews">
-        <div>
-          <h3>Page A</h3>
-          <canvas id="previewA"></canvas>
-        </div>
-        <div>
-          <h3>Page B</h3>
-          <canvas id="previewB"></canvas>
+      <div id="viewport" class="viewport" title="Drag to pan · scroll to zoom">
+        <div id="viewportInner" class="viewport-inner">
+          <canvas id="overlayCanvas"></canvas>
         </div>
       </div>
     </main>
