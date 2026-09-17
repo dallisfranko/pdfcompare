@@ -4,7 +4,8 @@ Portable, local-only PDF page overlay comparison tool.
 
 ## Not a coder? Start here
 
-Use it as a **website** (no download): see [DOWNLOAD.md](DOWNLOAD.md) / [WEBSITE.md](WEBSITE.md).
+Permanent website setup (simple GitHub Pages): **[WEBSITE.md](WEBSITE.md)**  
+Then open: `https://dallisfranko.github.io/pdfcompare/`
 
 PDFs are chosen in your browser, not uploaded, and not overwritten.
 

@@ -1,27 +1,43 @@
-# Permanent website setup (one-time)
+# Make the permanent GitHub website (simplest)
 
-You asked for a normal website (no download). The app is ready for that.
+This hosts only the webpage files (HTML/JS/CSS).  
+Your PDFs still stay in your browser and are not uploaded or overwritten.
 
-## What the website does
+## Do these clicks once
 
-- You open a link in your browser
-- You choose two PDFs from your computer
-- Overlay happens **in your browser**
-- PDFs are **not uploaded** to a server by the app
-- Original PDFs are **not replaced**
+### 1) Merge the pull request
+
+Open: https://github.com/dallisfranko/pdfcompare/pull/1  
+Click **Merge pull request**.
+
+### 2) Turn on GitHub Pages
+
+1. Open: https://github.com/dallisfranko/pdfcompare/settings/pages  
+2. Under **Build and deployment** → **Source**, choose **Deploy from a branch**  
+3. Branch: **main**  
+4. Folder: **/docs**  
+5. Click **Save**
+
+### 3) Open your site
+
+After a minute or two, open:
+
+**https://dallisfranko.github.io/pdfcompare/**
+
+If GitHub shows a different Pages URL on that settings page, use the one it shows.
+
+## If Pages is grayed out / blocked
+
+Your repo is **private**. On some GitHub plans, private repos can’t use Pages.
+
+Then pick one:
+
+- Make the repo **public** (easiest for a shareable website), or
+- Tell me and we can use another free host
+
+## Privacy reminder
+
+- Choosing a PDF in the website does **not** upload it to GitHub
+- Original PDFs are never replaced
 - Closing the tab clears the session
-
-## Permanent GitHub website (recommended)
-
-Because this GitHub repo is private, you need one quick settings step:
-
-1. Open: https://github.com/dallisfranko/pdfcompare/settings/pages
-2. Under **Build and deployment**, set Source to **GitHub Actions**
-3. Run the workflow **Deploy web app to GitHub Pages** once (Actions tab), or push any change
-4. Your permanent site will be roughly:
-
-`https://dallisfranko.github.io/pdfcompare/`
-
-Only people with access to the private repo (or as allowed by your GitHub plan) may be able to open it.
-
-If you want **anyone with the link** to use it with no GitHub login, the repo/site needs to be public, or we host it on another free website host (Netlify/Cloudflare). Tell me if you want that.
+- For company computers, still check with IT
