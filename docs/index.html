@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>PdfOverlay v0.4.0</title>
-  <link rel="stylesheet" href="styles.css?v=0.4.0" />
+  <title>PdfOverlay v0.5.0</title>
+  <link rel="stylesheet" href="styles.css?v=0.5.0" />
 </head>
 <body>
   <div class="app">
@@ -13,7 +13,7 @@
       <div>
         <h1>
           PdfOverlay
-          <span class="version" id="appVersion" title="Build version — if this is missing, you are on an old cached copy">v0.4.0</span>
+          <span class="version" id="appVersion" title="Build version — if this is missing, you are on an old cached copy">v0.5.0</span>
         </h1>
         <p class="tagline">
           Compare large plans in your browser. PDFs are not uploaded or overwritten.
@@ -73,7 +73,10 @@
 
       <section class="panel">
         <h2>Align by points</h2>
-        <p class="hint">Click the same two spots on A, then on B. No X/Y sliders needed.</p>
+        <p class="hint">
+          Pick the same landmark on A, then find it on B (it may be in a different place on the page).
+          Pan and zoom freely between clicks — the view will not reset.
+        </p>
         <label class="check-row">
           <input id="snapContent" type="checkbox" checked />
           Snap to content (corners &amp; endpoints)
@@ -82,7 +85,6 @@
         <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel align</button>
         <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
         <p id="alignStatus" class="align-status">Alignment: none</p>
-        <p class="hint">Like Bluebeam Snap to Content: clicks pull to nearby line ends and corners on the drawing.</p>
       </section>
 
       <section class="panel">
@@ -115,6 +117,11 @@
           <div class="empty-page"></div>
           <p class="empty-label">Choose two local PDFs to begin</p>
         </div>
+        <div id="alignRef" class="align-ref" hidden>
+          <p id="alignRefTitle" class="align-ref-title">Find this on the other PDF</p>
+          <canvas id="alignRefCanvas" width="160" height="160"></canvas>
+          <p class="align-ref-hint">Pan/zoom to the matching spot, then click. It is often not in the same place.</p>
+        </div>
         <div id="viewportInner" class="viewport-inner">
           <canvas id="overlayCanvas"></canvas>
         </div>
@@ -122,6 +129,6 @@
     </main>
   </div>
 
-  <script type="module" src="app.js?v=0.4.0"></script>
+  <script type="module" src="app.js?v=0.5.0"></script>
 </body>
 </html>
