@@ -1,6 +1,12 @@
 # PdfOverlay
 
-Portable, local-only PDF page overlay comparison tool (proof of concept).
+Portable, local-only PDF page overlay comparison tool.
+
+## Not a coder? Start here
+
+**[Download for Windows](DOWNLOAD.md)** — unzip and double-click `PdfOverlay.exe`. No developer tools needed.
+
+---
 
 Open two PDFs from disk, pick one page from each, overlay them, and adjust opacity. Nothing is uploaded. Original PDFs are never modified. Temporary files stay in a dedicated folder and are cleared on exit.
 
