@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="referrer" content="no-referrer" />
-  <title>PdfOverlay v0.5.0</title>
-  <link rel="stylesheet" href="styles.css?v=0.5.0" />
+  <title>PdfOverlay v0.6.0</title>
+  <link rel="stylesheet" href="styles.css?v=0.6.0" />
 </head>
 <body>
   <div class="app">
@@ -13,10 +13,9 @@
       <div>
         <h1>
           PdfOverlay
-          <span class="version" id="appVersion" title="Build version — if this is missing, you are on an old cached copy">v0.5.0</span>
+          <span class="version" id="appVersion" title="Build version">v0.6.0</span>
         </h1>
         <p class="tagline">
-          Compare large plans in your browser. PDFs are not uploaded or overwritten.
           <span class="legend"><span class="swatch red"></span> A &nbsp; <span class="swatch blue"></span> B &nbsp; dark = same</span>
         </p>
       </div>
@@ -29,11 +28,10 @@
         <div class="sheet-nav" role="group" aria-label="Page navigation">
           <button type="button" id="prevBoth" class="btn sheet-btn" disabled title="Previous sheet (←)">‹</button>
           <div class="sheet-center">
-            <p id="pageMeta" class="page-meta sheet-meta">Load both PDFs to flip sheets</p>
+            <p id="pageMeta" class="page-meta sheet-meta">Load both PDFs</p>
           </div>
           <button type="button" id="nextBoth" class="btn sheet-btn" disabled title="Next sheet (→)">›</button>
         </div>
-        <p class="hint">Moves each PDF forward or back by one. Pick exact pages under A and B. Keyboard: ← →</p>
       </section>
 
       <section class="panel">
@@ -68,27 +66,22 @@
           <input id="opacity" type="range" min="0.15" max="1" step="0.05" value="1" />
           <span id="opacityLabel">100%</span>
         </label>
-        <p class="hint">Red vs blue makes differences easy to spot (Bluebeam-style).</p>
       </section>
 
       <section class="panel">
-        <h2>Align by points</h2>
-        <p class="hint">
-          Pick the same landmark on A, then find it on B (it may be in a different place on the page).
-          Pan and zoom freely between clicks — the view will not reset.
-        </p>
+        <h2>Align</h2>
         <label class="check-row">
           <input id="snapContent" type="checkbox" checked />
-          Snap to content (corners &amp; endpoints)
+          Snap to corners / endpoints
         </label>
         <button type="button" id="alignStartBtn" class="btn primary">Start 2-point align</button>
-        <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel align</button>
+        <button type="button" id="alignCancelBtn" class="btn" hidden>Cancel</button>
         <button type="button" id="resetAlignBtn" class="btn">Reset alignment</button>
         <p id="alignStatus" class="align-status">Alignment: none</p>
       </section>
 
       <section class="panel">
-        <h2>View (PDF area only)</h2>
+        <h2>View</h2>
         <div class="btn-row">
           <button type="button" id="zoomOut" class="btn small">−</button>
           <button type="button" id="zoomIn" class="btn small">+</button>
@@ -96,31 +89,19 @@
           <button type="button" id="zoomReset" class="btn">100%</button>
         </div>
         <p id="zoomLabel">100%</p>
-        <p class="hint">Drag to pan. Scroll wheel zooms the drawing, not the sidebar.</p>
-      </section>
-
-      <section class="panel privacy">
-        <h2>Privacy</h2>
-        <ul>
-          <li>Files stay in this browser tab only</li>
-          <li>Nothing is uploaded</li>
-          <li>Original PDFs are never modified</li>
-          <li>Clear or close the tab to discard everything</li>
-        </ul>
       </section>
     </aside>
 
     <main class="main">
-      <p id="status" class="status">Choose two local PDFs to begin.</p>
+      <p id="status" class="status">Choose two PDFs to begin.</p>
       <div id="viewport" class="viewport is-empty" title="Drag to pan · scroll to zoom">
         <div id="emptyStage" class="empty-stage" aria-hidden="true">
           <div class="empty-page"></div>
-          <p class="empty-label">Choose two local PDFs to begin</p>
+          <p class="empty-label">Choose two PDFs</p>
         </div>
         <div id="alignRef" class="align-ref" hidden>
-          <p id="alignRefTitle" class="align-ref-title">Find this on the other PDF</p>
+          <p id="alignRefTitle" class="align-ref-title">Match this on the other PDF</p>
           <canvas id="alignRefCanvas" width="160" height="160"></canvas>
-          <p class="align-ref-hint">Pan/zoom to the matching spot, then click. It is often not in the same place.</p>
         </div>
         <div id="viewportInner" class="viewport-inner">
           <canvas id="overlayCanvas"></canvas>
@@ -129,6 +110,6 @@
     </main>
   </div>
 
-  <script type="module" src="app.js?v=0.5.0"></script>
+  <script type="module" src="app.js?v=0.6.0"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 import * as pdfjsLib from "./vendor/pdfjs/pdf.min.mjs";
 
 /** Bump this when shipping UI changes so users can confirm they loaded the new build. */
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 const MAX_VIEW_ZOOM = 8;
 const MIN_VIEW_ZOOM = 0.05;
 /** Marker size in screen pixels (does not grow when you zoom the drawing). */
@@ -203,7 +203,7 @@ async function clearEverything() {
   updatePageControls();
   applyViewTransform();
   setViewportEmpty(true);
-  setStatus("Cleared. Nothing from this session is kept after you leave this page.");
+  setStatus("Cleared.");
 }
 
 function fillPageSelect(select, count, selected) {
@@ -243,9 +243,9 @@ function updatePageControls() {
     (state.pageA >= state.pageCountA && state.pageB >= state.pageCountB);
 
   if (!hasA && !hasB) {
-    els.pageMeta.textContent = "Load both PDFs to flip sheets";
+    els.pageMeta.textContent = "Load both PDFs";
   } else if (!ready) {
-    els.pageMeta.textContent = "Choose the other PDF to unlock sheet flip";
+    els.pageMeta.textContent = "Choose the other PDF";
   } else {
     els.pageMeta.innerHTML =
       `<span class="meta-a">A ${state.pageA}/${state.pageCountA}</span>` +
@@ -328,11 +328,11 @@ async function loadPdf(file, which) {
 
   resetAlignment();
   updatePageControls();
-  setStatus(`Loaded ${file.name} in memory only. Original file was not changed.`);
+  setStatus(`Loaded ${file.name}`);
   await refresh(true, true);
 }
 
-async function renderPage(pdf, pageNumber, scale = 1.75) {
+async function renderPage(pdf, pageNumber, scale = 2.25) {
   const page = await pdf.getPage(pageNumber);
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
@@ -520,21 +520,24 @@ function drawSnapPreview(ctx, preview) {
 }
 
 /**
- * Bluebeam-style snap: pull a click toward nearby ink endpoints, corners, and junctions.
- * Works on the rasterized page (vector endpoints aren't available in the browser).
+ * Snap to nearby drawing corners / endpoints (Bluebeam-style, on raster ink).
+ * Uses adaptive ink threshold + Harris corners so thick CAD lines still snap.
  */
-function findSnapPoint(sourceCanvas, x, y) {
+function findSnapPoint(sourceCanvas, x, y, screenRadius = 32) {
   if (!sourceCanvas) return { x, y, snapped: false };
 
-  const screenRadius = 20;
-  const searchRadius = Math.max(10, Math.min(64, Math.round(screenRadius / Math.max(state.viewZoom, 0.15))));
-  const inkThreshold = 235;
+  const searchRadius = Math.max(
+    14,
+    Math.min(96, Math.round(screenRadius / Math.max(state.viewZoom, 0.12)))
+  );
 
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
   const cx = Math.round(x);
   const cy = Math.round(y);
-  if (cx < 0 || cy < 0 || cx >= w || cy >= h) return { x, y, snapped: false };
+  if (cx < -searchRadius || cy < -searchRadius || cx >= w + searchRadius || cy >= h + searchRadius) {
+    return { x, y, snapped: false };
+  }
 
   const x0 = Math.max(0, cx - searchRadius);
   const y0 = Math.max(0, cy - searchRadius);
@@ -542,15 +545,28 @@ function findSnapPoint(sourceCanvas, x, y) {
   const y1 = Math.min(h - 1, cy + searchRadius);
   const rw = x1 - x0 + 1;
   const rh = y1 - y0 + 1;
+  if (rw < 5 || rh < 5) return { x, y, snapped: false };
 
   const ctx = sourceCanvas.getContext("2d", { willReadFrequently: true });
   const img = ctx.getImageData(x0, y0, rw, rh);
   const data = img.data;
-  const ink = new Uint8Array(rw * rh);
+  const gray = new Float32Array(rw * rh);
+  let sum = 0;
+  let count = 0;
 
-  for (let i = 0, p = 0; i < ink.length; i += 1, p += 4) {
+  for (let i = 0, p = 0; i < gray.length; i += 1, p += 4) {
     const lum = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2];
-    ink[i] = lum < inkThreshold ? 1 : 0;
+    gray[i] = lum;
+    sum += lum;
+    count += 1;
+  }
+
+  const mean = sum / Math.max(count, 1);
+  // Plans are mostly white paper; ink can be gray anti-aliased lines.
+  const inkCut = Math.min(242, Math.max(170, mean - 18));
+  const ink = new Uint8Array(rw * rh);
+  for (let i = 0; i < gray.length; i += 1) {
+    ink[i] = gray[i] < inkCut ? 1 : 0;
   }
 
   const dirs = [
@@ -565,6 +581,55 @@ function findSnapPoint(sourceCanvas, x, y) {
   ];
 
   const candidates = [];
+
+  // Pass 1: Harris corner response on grayscale (great for corners of walls/boxes).
+  for (let ly = 2; ly < rh - 2; ly += 1) {
+    for (let lx = 2; lx < rw - 2; lx += 1) {
+      const i = ly * rw + lx;
+      const ix =
+        -gray[i - rw - 1] +
+        gray[i - rw + 1] -
+        2 * gray[i - 1] +
+        2 * gray[i + 1] -
+        gray[i + rw - 1] +
+        gray[i + rw + 1];
+      const iy =
+        -gray[i - rw - 1] -
+        2 * gray[i - rw] -
+        gray[i - rw + 1] +
+        gray[i + rw - 1] +
+        2 * gray[i + rw] +
+        gray[i + rw + 1];
+      const a = ix * ix;
+      const b = ix * iy;
+      const c = iy * iy;
+      const det = a * c - b * b;
+      const trace = a + c;
+      const harris = det - 0.05 * trace * trace;
+      if (harris < 1200) continue;
+
+      // Prefer responses that sit on/near ink.
+      let nearInk = ink[i];
+      if (!nearInk) {
+        for (const [dx, dy] of dirs) {
+          if (ink[(ly + dy) * rw + (lx + dx)]) {
+            nearInk = 1;
+            break;
+          }
+        }
+      }
+      if (!nearInk) continue;
+
+      const px = x0 + lx;
+      const py = y0 + ly;
+      const dist = Math.hypot(px - x, py - y);
+      if (dist <= searchRadius) {
+        candidates.push({ x: px, y: py, score: 50 + Math.min(harris / 80, 80), dist });
+      }
+    }
+  }
+
+  // Pass 2: morphological endpoints / junctions on binary ink (line tips).
   for (let ly = 1; ly < rh - 1; ly += 1) {
     for (let lx = 1; lx < rw - 1; lx += 1) {
       const idx = ly * rw + lx;
@@ -581,11 +646,11 @@ function findSnapPoint(sourceCanvas, x, y) {
       }
 
       let score = 0;
-      if (neighbors === 1) score = 100; // endpoint
-      else if (neighbors === 2 && transitions >= 4) score = 85; // corner bend
-      else if (neighbors >= 3) score = 75; // junction / T / cross
-      else if (transitions >= 6) score = 65;
-
+      if (neighbors === 1) score = 120; // true endpoint
+      else if (neighbors === 2 && transitions >= 4) score = 95; // bend / corner
+      else if (neighbors === 0) score = 40; // isolated speck — weak
+      else if (neighbors >= 3) score = 90; // junction
+      else if (transitions >= 6) score = 85;
       if (!score) continue;
 
       const px = x0 + lx;
@@ -596,19 +661,29 @@ function findSnapPoint(sourceCanvas, x, y) {
   }
 
   if (candidates.length) {
+    // Prefer high score, then closeness. Strong local magnet.
     candidates.sort((a, b) => b.score - a.score || a.dist - b.dist);
     const top = candidates[0].score;
     const best = candidates
-      .filter((c) => c.score >= top - 25)
+      .filter((c) => c.score >= top - 30)
       .sort((a, b) => a.dist - b.dist)[0];
     return { x: best.x, y: best.y, snapped: true };
   }
 
-  // Fallback: nearest ink pixel in the search window
+  // Pass 3: nearest ink edge pixel (still better than free space).
   let nearest = null;
-  for (let ly = 0; ly < rh; ly += 1) {
-    for (let lx = 0; lx < rw; lx += 1) {
-      if (!ink[ly * rw + lx]) continue;
+  for (let ly = 1; ly < rh - 1; ly += 1) {
+    for (let lx = 1; lx < rw - 1; lx += 1) {
+      const idx = ly * rw + lx;
+      if (!ink[idx]) continue;
+      let paperTouch = false;
+      for (const [dx, dy] of dirs) {
+        if (!ink[(ly + dy) * rw + (lx + dx)]) {
+          paperTouch = true;
+          break;
+        }
+      }
+      if (!paperTouch) continue;
       const px = x0 + lx;
       const py = y0 + ly;
       const dist = Math.hypot(px - x, py - y);
@@ -618,6 +693,7 @@ function findSnapPoint(sourceCanvas, x, y) {
   if (nearest && nearest.dist <= searchRadius) {
     return { x: nearest.x, y: nearest.y, snapped: true };
   }
+
   return { x, y, snapped: false };
 }
 
@@ -630,7 +706,12 @@ function activeAlignBitmap() {
 function applySnapIfEnabled(pt) {
   if (!els.snapContent.checked) return { ...pt, snapped: false };
   const bitmap = activeAlignBitmap();
-  return findSnapPoint(bitmap, pt.x, pt.y);
+  let snapped = findSnapPoint(bitmap, pt.x, pt.y, 34);
+  // Second try with a wider magnet if the first pass missed.
+  if (!snapped.snapped) {
+    snapped = findSnapPoint(bitmap, pt.x, pt.y, 56);
+  }
+  return snapped;
 }
 
 async function refresh(reRender = true, fit = false) {
@@ -654,9 +735,7 @@ async function refresh(reRender = true, fit = false) {
 
     if (state.alignStep === "idle") {
       setStatus(
-        `Compare ready — A p.${state.pageA}/${state.pageCountA} (red) · ` +
-          `B p.${state.pageB}/${state.pageCountB} (blue). ` +
-          `Pick pages under each document, or use ‹ › / ← → to step both.`
+        `Ready — A p.${state.pageA}/${state.pageCountA} · B p.${state.pageB}/${state.pageCountB}`
       );
     }
     updatePageControls();
@@ -685,11 +764,8 @@ function startAlign() {
   els.viewport.classList.add("aligning");
   els.alignStartBtn.hidden = true;
   els.alignCancelBtn.hidden = false;
-  setAlignStatus("Step 1/4: on RED (A), click landmark 1");
-  setStatus(
-    "Align A→B: zoom/pan on A, click a clear landmark (corner works best). " +
-      "Next you will find that SAME landmark on B — often in a different place."
-  );
+  setAlignStatus("Step 1/4: click landmark on A (red)");
+  setStatus("Zoom in on A, hover until the yellow snap locks, then click.");
   showAlignDocument(true);
 }
 
@@ -708,17 +784,13 @@ function handleAlignClick(pt) {
   if (step === "a1") {
     state.alignPoints.a1 = snapped;
     state.alignStep = "b1";
-    showAlignReference(
-      state.bitmapA,
-      snapped,
-      "Match this landmark on BLUE (B)"
-    );
-    setAlignStatus("Step 2/4: on BLUE (B), click the matching landmark");
+    showAlignReference(state.bitmapA, snapped, "Match this on B (blue)");
+    setAlignStatus("Step 2/4: click matching landmark on B");
     setStatus(
-      "Now on B: pan and zoom to find the SAME landmark shown in the preview. " +
-        "Do not click the same screen corner — find the matching feature on B, then click it."
+      snapped.snapped
+        ? "Snapped on A. On B: pan to the same feature (preview), wait for yellow snap, click."
+        : "On B: pan to the same feature (preview), wait for yellow snap, click."
     );
-    // Fit B once so the whole sheet is visible; your pan/zoom after that is kept.
     showAlignDocument(true);
     return;
   }
@@ -727,10 +799,8 @@ function handleAlignClick(pt) {
     state.alignPoints.b1 = snapped;
     state.alignStep = "a2";
     hideAlignReference();
-    setAlignStatus("Step 3/4: on RED (A), click landmark 2 (far from #1)");
-    setStatus(
-      "Back on A: pick a second landmark far from the first (another corner). Pan/zoom as needed."
-    );
+    setAlignStatus("Step 3/4: click 2nd landmark on A");
+    setStatus("On A: pick a second corner far from #1.");
     showAlignDocument(true);
     return;
   }
@@ -738,15 +808,9 @@ function handleAlignClick(pt) {
   if (step === "a2") {
     state.alignPoints.a2 = snapped;
     state.alignStep = "b2";
-    showAlignReference(
-      state.bitmapA,
-      snapped,
-      "Match landmark #2 on BLUE (B)"
-    );
-    setAlignStatus("Step 4/4: on BLUE (B), click matching landmark #2");
-    setStatus(
-      "On B again: find landmark #2 from the preview (usually a different place than on A), then click it."
-    );
+    showAlignReference(state.bitmapA, snapped, "Match #2 on B (blue)");
+    setAlignStatus("Step 4/4: click matching #2 on B");
+    setStatus("On B: find landmark #2 from the preview, snap, click.");
     showAlignDocument(true);
     return;
   }
@@ -767,12 +831,12 @@ function handleAlignClick(pt) {
       els.alignStartBtn.hidden = false;
       els.alignCancelBtn.hidden = true;
       setAlignStatus(
-        `Aligned (scale ${state.transform.scale.toFixed(3)}, rotation ${(
+        `Aligned (scale ${state.transform.scale.toFixed(3)}, rot ${(
           (state.transform.rot * 180) /
           Math.PI
-        ).toFixed(2)}°)`
+        ).toFixed(1)}°)`
       );
-      setStatus("Alignment applied — B is mapped onto A. Pan/zoom to inspect differences.");
+      setStatus("Aligned — B mapped onto A.");
       composeOverlay();
       fitToViewport();
     } catch (err) {
@@ -980,6 +1044,6 @@ window.addEventListener("resize", () => {
   if (els.overlayCanvas.width) applyViewTransform();
 });
 
-setStatus(`Choose two local PDFs to begin. Nothing is uploaded. (v${APP_VERSION})`);
+setStatus(`Choose two PDFs to begin. (v${APP_VERSION})`);
 updatePageControls();
 console.info(`[PdfOverlay] loaded v${APP_VERSION}`);
