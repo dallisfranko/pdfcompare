@@ -1,0 +1,46 @@
+PdfOverlay — portable Windows app
+=================================
+
+What this is
+------------
+A local-only PDF page overlay tool. It runs from this folder. No installer.
+
+How to run
+----------
+1. Get approval from your company IT/security team before using this on a
+   company computer (including remote desktop / Citrix / VDI sessions).
+2. Copy this entire folder somewhere you can run programs from, for example:
+     - a folder on the work PC, or
+     - a USB drive
+4. Double-click PdfOverlay.exe
+5. Open two local PDFs, pick pages, adjust opacity/alignment.
+
+What you can do
+---------------
+- Overlay two PDF pages with opacity
+- Nudge / scale the top page for alignment
+- Zoom the view for inspection
+- Export / import a project file (settings only; PDFs are not copied)
+- Choose the temporary folder and clear temporary data
+
+Sharing with a colleague (USB)
+------------------------------
+1. Copy this whole folder onto a USB drive (not just PdfOverlay.exe).
+2. Give them the USB drive or a zip of this folder.
+3. They still need their own IT approval before using it on a company PC.
+4. They copy the folder onto their approved machine (or run from the USB if
+   their IT allows that), then run PdfOverlay.exe.
+
+Important privacy points
+------------------------
+- Does not upload PDFs or talk to the internet for app features.
+- Does not install services, drivers, or browser extensions.
+- Does not require admin rights.
+- Does not modify the original PDF files.
+- Temporary files stay in a "temp" folder beside this app (or a fallback you
+  can choose). Use "Clear Temporary Data" anytime; temp is also cleared on exit.
+
+Also read
+---------
+- PRIVACY.md
+- IT-REVIEW.md

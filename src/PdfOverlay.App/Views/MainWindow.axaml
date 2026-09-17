@@ -1,0 +1,167 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PdfOverlay.App.ViewModels"
+        x:Class="PdfOverlay.App.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="PdfOverlay — local PDF comparison"
+        Width="1280"
+        Height="860"
+        MinWidth="960"
+        MinHeight="640">
+
+  <DockPanel Margin="16">
+    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+      <TextBlock Text="PdfOverlay" FontSize="22" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding PrivacySummary}" TextWrapping="Wrap" Opacity="0.85" />
+      <TextBlock Text="{Binding TempFolderPath, StringFormat='Temporary folder: {0}'}" Opacity="0.75" TextWrapping="Wrap" />
+    </StackPanel>
+
+    <TextBlock DockPanel.Dock="Bottom"
+               Margin="0,12,0,0"
+               Text="{Binding StatusMessage}"
+               TextWrapping="Wrap" />
+
+    <Grid ColumnDefinitions="300,*">
+      <ScrollViewer Grid.Column="0" Margin="0,0,16,0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="12">
+          <Border Padding="12" Background="#F3F4F6" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Document A (base)" FontWeight="SemiBold" />
+              <Button Content="Open PDF A…" Command="{Binding OpenDocumentACommand}" />
+              <TextBlock Text="{Binding DocumentAName, FallbackValue='No file opened'}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Page" VerticalAlignment="Center" />
+                <ComboBox Width="80"
+                          ItemsSource="{Binding PageAOptions}"
+                          SelectedItem="{Binding PageA}" />
+                <TextBlock Text="{Binding PageACount, StringFormat='of {0}'}" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Padding="12" Background="#F3F4F6" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Document B (overlay)" FontWeight="SemiBold" />
+              <Button Content="Open PDF B…" Command="{Binding OpenDocumentBCommand}" />
+              <TextBlock Text="{Binding DocumentBName, FallbackValue='No file opened'}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Page" VerticalAlignment="Center" />
+                <ComboBox Width="80"
+                          ItemsSource="{Binding PageBOptions}"
+                          SelectedItem="{Binding PageB}" />
+                <TextBlock Text="{Binding PageBCount, StringFormat='of {0}'}" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Padding="12" Background="#F3F4F6" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Overlay opacity (B)" FontWeight="SemiBold" />
+              <Slider Minimum="0"
+                      Maximum="1"
+                      TickFrequency="0.05"
+                      IsSnapToTickEnabled="True"
+                      Value="{Binding Opacity}" />
+              <TextBlock Text="{Binding Opacity, StringFormat='{}{0:P0}'}" />
+            </StackPanel>
+          </Border>
+
+          <Border Padding="12" Background="#F3F4F6" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Alignment (B over A)" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding OffsetSummary}" Opacity="0.8" />
+              <TextBlock Text="Nudge 1 px" Opacity="0.7" FontSize="12" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="←" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Left" />
+                <Button Content="→" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Right" />
+                <Button Content="↑" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Up" />
+                <Button Content="↓" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Down" />
+              </StackPanel>
+              <TextBlock Text="Nudge 10 px" Opacity="0.7" FontSize="12" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="⟸" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Left10" />
+                <Button Content="⟹" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Right10" />
+                <Button Content="⇑" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Up10" />
+                <Button Content="⇓" Width="36" Command="{Binding NudgeCommand}" CommandParameter="Down10" />
+              </StackPanel>
+              <TextBlock Text="Scale B" />
+              <Slider Minimum="0.5"
+                      Maximum="1.5"
+                      TickFrequency="0.01"
+                      IsSnapToTickEnabled="True"
+                      Value="{Binding TopScale}" />
+              <Button Content="Reset alignment" Command="{Binding ResetAlignmentCommand}" />
+            </StackPanel>
+          </Border>
+
+          <Border Padding="12" Background="#F3F4F6" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="View zoom" FontWeight="SemiBold" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="−" Width="36" Command="{Binding ZoomOutCommand}" />
+                <Button Content="+" Width="36" Command="{Binding ZoomInCommand}" />
+                <Button Content="100%" Command="{Binding ZoomResetCommand}" />
+              </StackPanel>
+              <TextBlock Text="{Binding ViewZoom, StringFormat='{}{0:P0}'}" />
+            </StackPanel>
+          </Border>
+
+          <Border Padding="12" Background="#EEF6F0" CornerRadius="4">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Project &amp; temporary data" FontWeight="SemiBold" />
+              <Button Content="Export Project…" Command="{Binding ExportProjectCommand}" />
+              <Button Content="Import Project…" Command="{Binding ImportProjectCommand}" />
+              <Button Content="Choose Temporary Folder…" Command="{Binding ChooseTempFolderCommand}" />
+              <Button Content="Clear Temporary Data" Command="{Binding ClearTemporaryDataCommand}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <Grid Grid.Column="1" RowDefinitions="*,150">
+        <Border Grid.Row="0"
+                Background="#FAFAFA"
+                BorderBrush="#D0D0D0"
+                BorderThickness="1"
+                Padding="8"
+                Margin="0,0,0,12">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Image Source="{Binding OverlayPreview}"
+                   Stretch="None"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center">
+              <Image.RenderTransform>
+                <ScaleTransform ScaleX="{Binding ViewZoom}" ScaleY="{Binding ViewZoom}" />
+              </Image.RenderTransform>
+            </Image>
+          </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*">
+          <Border Grid.Column="0"
+                  Background="#FAFAFA"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  Padding="6"
+                  Margin="0,0,6,0">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Page A preview" Margin="0,0,0,4" />
+              <Image Source="{Binding PageAPreview}" Stretch="Uniform" />
+            </DockPanel>
+          </Border>
+          <Border Grid.Column="1"
+                  Background="#FAFAFA"
+                  BorderBrush="#D0D0D0"
+                  BorderThickness="1"
+                  Padding="6"
+                  Margin="6,0,0,0">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Page B preview" Margin="0,0,0,4" />
+              <Image Source="{Binding PageBPreview}" Stretch="Uniform" />
+            </DockPanel>
+          </Border>
+        </Grid>
+      </Grid>
+    </Grid>
+  </DockPanel>
+</Window>

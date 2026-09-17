@@ -1,0 +1,28 @@
+HOW TO USE PDFOVERLAY (NO CODING)
+=================================
+
+Two versions:
+1) WEB (easiest)  -> open the "web" folder, double-click Open-PdfOverlay-Web.bat
+2) WINDOWS APP    -> download the zip, unzip, double-click PdfOverlay.exe
+
+WEB STEPS (easiest)
+-------------------
+1) Download:
+   https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-web.zip
+2) Extract All
+3) Open PdfOverlay-web folder
+4) Double-click Open-PdfOverlay-Web.bat
+5) Choose two PDFs
+6) Clear everything when done
+
+Nothing is uploaded. Original PDFs are not replaced.
+
+WINDOWS APP STEPS
+-----------------
+1) Open:
+   https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-portable-win-x64.zip
+2) Download raw file
+3) Extract All
+4) Double-click PdfOverlay.exe
+
+USB for Adam: copy the whole folder. He still needs IT approval for a work PC.
