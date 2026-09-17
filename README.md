@@ -4,12 +4,9 @@ Portable, local-only PDF page overlay comparison tool.
 
 ## Not a coder? Start here
 
-**[Download / open instructions](DOWNLOAD.md)**
+Use it as a **website** (no download): see [DOWNLOAD.md](DOWNLOAD.md) / [WEBSITE.md](WEBSITE.md).
 
-- **Web version (easiest):** open the `web` folder → double-click `Open-PdfOverlay-Web.bat`
-- **Windows app:** unzip and double-click `PdfOverlay.exe`
-
-Both keep PDFs local and temporary. Original files are never overwritten.
+PDFs are chosen in your browser, not uploaded, and not overwritten.
 
 ---
 

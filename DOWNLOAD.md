@@ -1,66 +1,33 @@
-# Download PdfOverlay (no coding)
+# How to use PdfOverlay
 
-You do **not** need to be a programmer.
+## Just use the website (what you asked for)
 
-There are two easy versions:
+Open this link in your browser:
 
-1. **Web version** (browser) — usually easiest  
-2. **Windows app** (`PdfOverlay.exe`) — portable desktop program
+**https://pos-tires-tries-palestinian.trycloudflare.com**
 
-Both keep PDFs local/temporary and do **not** overwrite your original files.
+Then:
 
----
+1. Click **Choose PDF A**
+2. Click **Choose PDF B**
+3. Adjust opacity / alignment
+4. Click **Clear everything** when done
 
-## Web version (easiest for most people)
+No download. PDFs stay in your browser and are not uploaded or overwritten.
 
-### Fastest download
-
-1. Open this page while logged into GitHub:  
-   https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-web.zip
-2. Click **Download raw file**
-3. Unzip it
-4. Open the `PdfOverlay-web` folder
-5. Double-click **`Open-PdfOverlay-Web.bat`**
-6. Choose two PDFs in the browser
-7. Click **Clear everything** when done, then close the tab and the black window
-
-Nothing is uploaded. Original PDFs are not replaced or copied into permanent storage by the tool.
+> Note: that link is a temporary demo link from this agent session. For a permanent link, see [WEBSITE.md](WEBSITE.md) (one GitHub setting to turn on Pages).
 
 ---
 
-## Windows app version
+## Optional: Windows app / USB copies
 
-### 1) Open this page while logged into GitHub
+If you later want an offline `.exe` or USB handoff, see the older download steps below.
+
+### Windows app zip
 
 https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-portable-win-x64.zip
 
-### 2) Download the file
+### Web folder zip (offline browser copy)
 
-- Click the **Download raw file** button
-- Save `PdfOverlay-portable-win-x64.zip`
+https://github.com/dallisfranko/pdfcompare/blob/cursor/pdf-overlay-poc-6751/releases/PdfOverlay-web.zip
 
-### 3) Unzip it
-
-- Open **Downloads**
-- Right-click the zip → **Extract All…** → **Extract**
-
-### 4) Run the app
-
-- Open the unzipped folder
-- Double-click **PdfOverlay.exe**
-
-If Windows says “Windows protected your PC”: **More info** → **Run anyway**
-
----
-
-## USB for a coworker (Adam)
-
-Copy either the whole unzipped Windows app folder, or the whole `web` folder, to a USB drive.  
-They still need company IT approval before using it on a work computer.
-
-## What you need
-
-- A Windows PC for the easiest path
-- GitHub access to this repository
-
-You do **not** need coding tools.
