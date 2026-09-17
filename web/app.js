@@ -1,7 +1,11 @@
 import * as pdfjsLib from "./vendor/pdfjs/pdf.min.mjs";
 
 /** Bump this when shipping UI changes so users can confirm they loaded the new build. */
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
+const MAX_VIEW_ZOOM = 8;
+const MIN_VIEW_ZOOM = 0.05;
+/** Marker size in screen pixels (does not grow when you zoom the drawing). */
+const MARKER_SCREEN_PX = 7;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "./vendor/pdfjs/pdf.worker.min.mjs",
@@ -58,6 +62,9 @@ const els = {
   alignStartBtn: document.getElementById("alignStartBtn"),
   alignCancelBtn: document.getElementById("alignCancelBtn"),
   snapContent: document.getElementById("snapContent"),
+  alignRef: document.getElementById("alignRef"),
+  alignRefTitle: document.getElementById("alignRefTitle"),
+  alignRefCanvas: document.getElementById("alignRefCanvas"),
 };
 
 function setStatus(message) {
@@ -84,7 +91,7 @@ function fitToViewport() {
   const rect = els.viewport.getBoundingClientRect();
   if (rect.width < 10 || rect.height < 10) return;
   const scale = Math.min(rect.width / canvas.width, rect.height / canvas.height) * 0.98;
-  state.viewZoom = Math.max(0.05, scale);
+  state.viewZoom = Math.max(MIN_VIEW_ZOOM, Math.min(MAX_VIEW_ZOOM, scale));
   state.panX = (rect.width - canvas.width * state.viewZoom) / 2;
   state.panY = (rect.height - canvas.height * state.viewZoom) / 2;
   applyViewTransform();
@@ -107,10 +114,61 @@ function resetAlignment(keepMessage = false) {
   state.alignStep = "idle";
   state.alignPoints = { a1: null, b1: null, a2: null, b2: null };
   state.snapPreview = null;
+  hideAlignReference();
   els.viewport.classList.remove("aligning");
   els.alignStartBtn.hidden = false;
   els.alignCancelBtn.hidden = true;
   if (!keepMessage) setAlignStatus("Alignment: none");
+}
+
+function hideAlignReference() {
+  if (!els.alignRef) return;
+  els.alignRef.hidden = true;
+}
+
+/** Show a crop of the landmark just picked so the matching spot is easier to find on the other PDF. */
+function showAlignReference(sourceCanvas, pt, title) {
+  if (!els.alignRef || !sourceCanvas || !pt) {
+    hideAlignReference();
+    return;
+  }
+  const pad = 90;
+  const sx = Math.max(0, Math.round(pt.x - pad));
+  const sy = Math.max(0, Math.round(pt.y - pad));
+  const sw = Math.min(sourceCanvas.width - sx, pad * 2);
+  const sh = Math.min(sourceCanvas.height - sy, pad * 2);
+  const out = els.alignRefCanvas;
+  const size = 160;
+  out.width = size;
+  out.height = size;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, size, size);
+  if (sw > 0 && sh > 0) {
+    ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, size, size);
+  }
+  const lx = ((pt.x - sx) / Math.max(sw, 1)) * size;
+  const ly = ((pt.y - sy) / Math.max(sh, 1)) * size;
+  ctx.strokeStyle = "#ffd54f";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(lx - 14, ly);
+  ctx.lineTo(lx + 14, ly);
+  ctx.moveTo(lx, ly - 14);
+  ctx.lineTo(lx, ly + 14);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(lx, ly, 6, 0, Math.PI * 2);
+  ctx.stroke();
+  els.alignRefTitle.textContent = title;
+  els.alignRef.hidden = false;
+}
+
+/** Keep the current zoom; only re-center when the shown page size changes a lot. */
+function showAlignDocument(fit = false) {
+  composeOverlay();
+  if (fit) fitToViewport();
+  else applyViewTransform();
 }
 
 async function clearEverything() {
@@ -417,16 +475,17 @@ function drawAlignMarkers(ctx, which) {
 }
 
 function drawPointMarker(ctx, pt, label, color, snapped) {
-  const z = Math.max(state.viewZoom, 0.2);
+  const z = Math.max(state.viewZoom, 0.01);
+  const r = MARKER_SCREEN_PX / z;
   ctx.beginPath();
-  ctx.arc(pt.x, pt.y, 8 / z, 0, Math.PI * 2);
+  ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
   ctx.lineWidth = 2 / z;
   ctx.strokeStyle = "#fff";
   ctx.stroke();
   if (snapped) {
-    const s = 10 / z;
+    const s = (MARKER_SCREEN_PX + 3) / z;
     ctx.beginPath();
     ctx.moveTo(pt.x - s, pt.y);
     ctx.lineTo(pt.x + s, pt.y);
@@ -437,20 +496,20 @@ function drawPointMarker(ctx, pt, label, color, snapped) {
     ctx.stroke();
   }
   ctx.fillStyle = "#111";
-  ctx.font = `${14 / z}px sans-serif`;
-  ctx.fillText(label, pt.x + 10 / z, pt.y - 10 / z);
+  ctx.font = `bold ${12 / z}px sans-serif`;
+  ctx.fillText(label, pt.x + (MARKER_SCREEN_PX + 4) / z, pt.y - (MARKER_SCREEN_PX + 2) / z);
 }
 
 function drawSnapPreview(ctx, preview) {
-  const z = Math.max(state.viewZoom, 0.2);
-  const r = (preview.snapped ? 10 : 6) / z;
+  const z = Math.max(state.viewZoom, 0.01);
+  const r = ((preview.snapped ? MARKER_SCREEN_PX + 2 : MARKER_SCREEN_PX - 1)) / z;
   ctx.beginPath();
   ctx.arc(preview.x, preview.y, r, 0, Math.PI * 2);
   ctx.strokeStyle = preview.snapped ? "#ffd54f" : "rgba(255,255,255,0.7)";
   ctx.lineWidth = 2 / z;
   ctx.stroke();
   if (preview.snapped) {
-    const s = 12 / z;
+    const s = (MARKER_SCREEN_PX + 4) / z;
     ctx.beginPath();
     ctx.moveTo(preview.x - s, preview.y);
     ctx.lineTo(preview.x + s, preview.y);
@@ -621,22 +680,23 @@ function startAlign() {
   state.alignStep = "a1";
   state.alignPoints = { a1: null, b1: null, a2: null, b2: null };
   state.transform = null;
+  state.snapPreview = null;
+  hideAlignReference();
   els.viewport.classList.add("aligning");
   els.alignStartBtn.hidden = true;
   els.alignCancelBtn.hidden = false;
-  setAlignStatus("Step 1/4: click point 1 on RED (A)");
+  setAlignStatus("Step 1/4: on RED (A), click landmark 1");
   setStatus(
-    els.snapContent.checked
-      ? "Align mode: hover near a corner/endpoint — yellow crosshair means snap is ready."
-      : "Align mode: click a clear landmark on document A (red)."
+    "Align A→B: zoom/pan on A, click a clear landmark (corner works best). " +
+      "Next you will find that SAME landmark on B — often in a different place."
   );
-  composeOverlay();
-  fitToViewport();
+  showAlignDocument(true);
 }
 
 function cancelAlign() {
   resetAlignment();
   composeOverlay();
+  fitToViewport();
   setStatus("Align cancelled.");
 }
 
@@ -644,41 +704,53 @@ function handleAlignClick(pt) {
   const snapped = applySnapIfEnabled(pt);
   state.snapPreview = null;
   const step = state.alignStep;
+
   if (step === "a1") {
     state.alignPoints.a1 = snapped;
     state.alignStep = "b1";
-    setAlignStatus(
-      snapped.snapped
-        ? "Step 2/4: click the SAME snapped point on BLUE (B)"
-        : "Step 2/4: click the SAME point on BLUE (B)"
+    showAlignReference(
+      state.bitmapA,
+      snapped,
+      "Match this landmark on BLUE (B)"
     );
+    setAlignStatus("Step 2/4: on BLUE (B), click the matching landmark");
     setStatus(
-      snapped.snapped
-        ? "Snapped on A. Now click the matching landmark on B (blue)."
-        : "Now click that same landmark on document B (blue)."
+      "Now on B: pan and zoom to find the SAME landmark shown in the preview. " +
+        "Do not click the same screen corner — find the matching feature on B, then click it."
     );
-    composeOverlay();
-    fitToViewport();
+    // Fit B once so the whole sheet is visible; your pan/zoom after that is kept.
+    showAlignDocument(true);
     return;
   }
+
   if (step === "b1") {
     state.alignPoints.b1 = snapped;
     state.alignStep = "a2";
-    setAlignStatus("Step 3/4: click point 2 on RED (A)");
-    setStatus("Click a second landmark on document A (red), far from the first.");
-    composeOverlay();
-    fitToViewport();
+    hideAlignReference();
+    setAlignStatus("Step 3/4: on RED (A), click landmark 2 (far from #1)");
+    setStatus(
+      "Back on A: pick a second landmark far from the first (another corner). Pan/zoom as needed."
+    );
+    showAlignDocument(true);
     return;
   }
+
   if (step === "a2") {
     state.alignPoints.a2 = snapped;
     state.alignStep = "b2";
-    setAlignStatus("Step 4/4: click the SAME point 2 on BLUE (B)");
-    setStatus("Click the matching second landmark on document B (blue).");
-    composeOverlay();
-    fitToViewport();
+    showAlignReference(
+      state.bitmapA,
+      snapped,
+      "Match landmark #2 on BLUE (B)"
+    );
+    setAlignStatus("Step 4/4: on BLUE (B), click matching landmark #2");
+    setStatus(
+      "On B again: find landmark #2 from the preview (usually a different place than on A), then click it."
+    );
+    showAlignDocument(true);
     return;
   }
+
   if (step === "b2") {
     state.alignPoints.b2 = snapped;
     try {
@@ -690,6 +762,7 @@ function handleAlignClick(pt) {
       );
       state.alignStep = "idle";
       state.snapPreview = null;
+      hideAlignReference();
       els.viewport.classList.remove("aligning");
       els.alignStartBtn.hidden = false;
       els.alignCancelBtn.hidden = true;
@@ -699,13 +772,14 @@ function handleAlignClick(pt) {
           Math.PI
         ).toFixed(2)}°)`
       );
-      setStatus("Alignment applied. Pan/zoom the compare view to inspect differences.");
+      setStatus("Alignment applied — B is mapped onto A. Pan/zoom to inspect differences.");
       composeOverlay();
       fitToViewport();
     } catch (err) {
       setStatus(`Align failed: ${err.message || err}`);
       resetAlignment();
       composeOverlay();
+      fitToViewport();
     }
   }
 }
@@ -795,7 +869,7 @@ els.viewport.addEventListener(
     const beforeX = (mx - state.panX) / state.viewZoom;
     const beforeY = (my - state.panY) / state.viewZoom;
     const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
-    state.viewZoom = Math.min(12, Math.max(0.05, state.viewZoom * factor));
+    state.viewZoom = Math.min(MAX_VIEW_ZOOM, Math.max(MIN_VIEW_ZOOM, state.viewZoom * factor));
     state.panX = mx - beforeX * state.viewZoom;
     state.panY = my - beforeY * state.viewZoom;
     applyViewTransform();
@@ -870,7 +944,7 @@ document.getElementById("zoomIn").addEventListener("click", () => {
   const my = rect.height / 2;
   const beforeX = (mx - state.panX) / state.viewZoom;
   const beforeY = (my - state.panY) / state.viewZoom;
-  state.viewZoom = Math.min(12, state.viewZoom * 1.25);
+  state.viewZoom = Math.min(MAX_VIEW_ZOOM, state.viewZoom * 1.25);
   state.panX = mx - beforeX * state.viewZoom;
   state.panY = my - beforeY * state.viewZoom;
   applyViewTransform();
@@ -882,7 +956,7 @@ document.getElementById("zoomOut").addEventListener("click", () => {
   const my = rect.height / 2;
   const beforeX = (mx - state.panX) / state.viewZoom;
   const beforeY = (my - state.panY) / state.viewZoom;
-  state.viewZoom = Math.max(0.05, state.viewZoom / 1.25);
+  state.viewZoom = Math.max(MIN_VIEW_ZOOM, state.viewZoom / 1.25);
   state.panX = mx - beforeX * state.viewZoom;
   state.panY = my - beforeY * state.viewZoom;
   applyViewTransform();
