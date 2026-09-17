@@ -42,6 +42,21 @@ html, body {
 h1 {
   margin: 0 0 4px;
   font-size: 1.45rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.version {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 3px 9px;
+  vertical-align: middle;
 }
 
 .tagline {

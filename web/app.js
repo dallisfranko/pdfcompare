@@ -1,5 +1,8 @@
 import * as pdfjsLib from "./vendor/pdfjs/pdf.min.mjs";
 
+/** Bump this when shipping UI changes so users can confirm they loaded the new build. */
+const APP_VERSION = "0.4.0";
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "./vendor/pdfjs/pdf.worker.min.mjs",
   import.meta.url
@@ -903,5 +906,6 @@ window.addEventListener("resize", () => {
   if (els.overlayCanvas.width) applyViewTransform();
 });
 
-setStatus("Choose two local PDFs to begin. Nothing is uploaded.");
+setStatus(`Choose two local PDFs to begin. Nothing is uploaded. (v${APP_VERSION})`);
 updatePageControls();
+console.info(`[PdfOverlay] loaded v${APP_VERSION}`);
