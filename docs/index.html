@@ -17,7 +17,7 @@
           <span class="legend"><span class="swatch red"></span> A &nbsp; <span class="swatch blue"></span> B &nbsp; dark = same</span>
         </p>
       </div>
-      <button type="button" id="clearAllBtn" class="btn danger">Clear everything</button>
+      <button type="button" id="clearAllBtn" class="btn danger">Clear</button>
     </header>
 
     <aside class="sidebar">
@@ -28,15 +28,6 @@
           <input id="fileA" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameA" class="filename">No file chosen</p>
-        <div class="page-nav">
-          <button type="button" id="prevA" class="btn small" disabled title="Previous page A">‹</button>
-          <label class="page-label">
-            Page
-            <select id="pageA" disabled></select>
-          </label>
-          <button type="button" id="nextA" class="btn small" disabled title="Next page A">›</button>
-        </div>
-        <p id="pageAMeta" class="page-meta">No pages</p>
       </section>
 
       <section class="panel">
@@ -46,28 +37,22 @@
           <input id="fileB" type="file" accept="application/pdf,.pdf" />
         </label>
         <p id="nameB" class="filename">No file chosen</p>
-        <div class="page-nav">
-          <button type="button" id="prevB" class="btn small" disabled title="Previous page B">‹</button>
-          <label class="page-label">
-            Page
-            <select id="pageB" disabled></select>
-          </label>
-          <button type="button" id="nextB" class="btn small" disabled title="Next page B">›</button>
-        </div>
-        <p id="pageBMeta" class="page-meta">No pages</p>
       </section>
 
-      <section class="panel">
-        <h2>Multi-page compare</h2>
-        <label class="check-row">
-          <input id="linkPages" type="checkbox" checked />
-          Keep A and B on the same page number
-        </label>
-        <div class="btn-row">
-          <button type="button" id="prevBoth" class="btn" disabled>‹ Prev page</button>
-          <button type="button" id="nextBoth" class="btn" disabled>Next page ›</button>
+      <section class="panel panel-sheet">
+        <h2>Flip sheets</h2>
+        <div class="sheet-nav" role="group" aria-label="Page navigation">
+          <button type="button" id="prevBoth" class="btn sheet-btn" disabled title="Previous sheet (←)">‹</button>
+          <div class="sheet-center">
+            <label class="page-label" for="pageBoth">
+              Page
+              <select id="pageBoth" disabled></select>
+            </label>
+            <p id="pageMeta" class="page-meta">Load both PDFs to flip sheets</p>
+          </div>
+          <button type="button" id="nextBoth" class="btn sheet-btn" disabled title="Next sheet (→)">›</button>
         </div>
-        <p class="hint">Use Next/Prev to flip through plan sheets. Keyboard: ← → when Linked is on.</p>
+        <p class="hint">One control flips A and B together. Keyboard: ← →</p>
       </section>
 
       <section class="panel">

@@ -33,22 +33,15 @@ const state = {
   alignPoints: { a1: null, b1: null, a2: null, b2: null },
 };
 
-const els = {
+const const els = {
   fileA: document.getElementById("fileA"),
   fileB: document.getElementById("fileB"),
   nameA: document.getElementById("nameA"),
   nameB: document.getElementById("nameB"),
-  pageA: document.getElementById("pageA"),
-  pageB: document.getElementById("pageB"),
-  pageAMeta: document.getElementById("pageAMeta"),
-  pageBMeta: document.getElementById("pageBMeta"),
-  prevA: document.getElementById("prevA"),
-  nextA: document.getElementById("nextA"),
-  prevB: document.getElementById("prevB"),
-  nextB: document.getElementById("nextB"),
+  pageBoth: document.getElementById("pageBoth"),
+  pageMeta: document.getElementById("pageMeta"),
   prevBoth: document.getElementById("prevBoth"),
   nextBoth: document.getElementById("nextBoth"),
-  linkPages: document.getElementById("linkPages"),
   opacity: document.getElementById("opacity"),
   opacityLabel: document.getElementById("opacityLabel"),
   status: document.getElementById("status"),
@@ -130,10 +123,8 @@ async function clearEverything() {
   els.fileB.value = "";
   els.nameA.textContent = "No file chosen";
   els.nameB.textContent = "No file chosen";
-  els.pageA.innerHTML = "";
-  els.pageB.innerHTML = "";
-  els.pageA.disabled = true;
-  els.pageB.disabled = true;
+  els.pageBoth.innerHTML = "";
+  els.pageBoth.disabled = true;
   els.opacity.value = "0.85";
   els.opacityLabel.textContent = "85%";
   els.overlayCanvas.width = 0;
@@ -141,6 +132,26 @@ async function clearEverything() {
   updatePageControls();
   applyViewTransform();
   setStatus("Cleared. Nothing from this session is kept after you leave this page.");
+}
+
+/** Shared page count when comparing: both PDFs stay on the same sheet number. */
+function sharedPageCount() {
+  const hasA = state.pageCountA > 0;
+  const hasB = state.pageCountB > 0;
+  if (hasA && hasB) return Math.min(state.pageCountA, state.pageCountB);
+  if (hasA) return state.pageCountA;
+  if (hasB) return state.pageCountB;
+  return 0;
+}
+
+function sharedPage() {
+  const count = sharedPageCount();
+  if (!count) return 1;
+  const hasA = state.pageCountA > 0;
+  const hasB = state.pageCountB > 0;
+  if (hasA && hasB) return Math.min(state.pageA, state.pageB, count);
+  if (hasA) return Math.min(state.pageA, count);
+  return Math.min(state.pageB, count);
 }
 
 function fillPageSelect(select, count, selected) {
@@ -156,65 +167,51 @@ function fillPageSelect(select, count, selected) {
 }
 
 function updatePageControls() {
-  const hasA = state.pageCountA > 0;
-  const hasB = state.pageCountB > 0;
+  const count = sharedPageCount();
+  const page = sharedPage();
+  const ready = state.pageCountA > 0 && state.pageCountB > 0;
 
-  els.pageA.disabled = !hasA;
-  els.pageB.disabled = !hasB;
-  els.prevA.disabled = !hasA || state.pageA <= 1;
-  els.nextA.disabled = !hasA || state.pageA >= state.pageCountA;
-  els.prevB.disabled = !hasB || state.pageB <= 1;
-  els.nextB.disabled = !hasB || state.pageB >= state.pageCountB;
+  if (els.pageBoth.options.length !== count) {
+    fillPageSelect(els.pageBoth, count, page);
+  } else if (count > 0) {
+    els.pageBoth.value = String(page);
+  }
 
-  els.pageAMeta.textContent = hasA
-    ? `Page ${state.pageA} of ${state.pageCountA}`
-    : "No pages";
-  els.pageBMeta.textContent = hasB
-    ? `Page ${state.pageB} of ${state.pageCountB}`
-    : "No pages";
+  els.pageBoth.disabled = !ready;
+  els.prevBoth.disabled = !ready || page <= 1;
+  els.nextBoth.disabled = !ready || page >= count;
 
-  if (els.linkPages.checked && hasA && hasB) {
-    const page = Math.min(state.pageA, state.pageB);
-    const maxPage = Math.min(state.pageCountA, state.pageCountB);
-    els.prevBoth.disabled = page <= 1;
-    els.nextBoth.disabled = page >= maxPage;
+  if (!state.pageCountA && !state.pageCountB) {
+    els.pageMeta.textContent = "Load both PDFs to flip sheets";
+  } else if (!ready) {
+    els.pageMeta.textContent = "Choose the other PDF to unlock sheet flip";
+  } else if (state.pageCountA !== state.pageCountB) {
+    els.pageMeta.textContent = `Sheet ${page} of ${count} (shared)`;
   } else {
-    els.prevBoth.disabled = true;
-    els.nextBoth.disabled = true;
+    els.pageMeta.textContent = `Sheet ${page} of ${count}`;
   }
 }
 
-async function setPage(which, page, { syncLinked = true, fit = true } = {}) {
-  if (which === "A") {
-    if (!state.pageCountA) return;
-    const next = Math.min(Math.max(1, page), state.pageCountA);
-    if (next === state.pageA && els.pageA.value === String(next)) {
-      updatePageControls();
-      return;
-    }
-    state.pageA = next;
-    els.pageA.value = String(next);
-    if (syncLinked && els.linkPages.checked && state.pageCountB) {
-      state.pageB = Math.min(next, state.pageCountB);
-      els.pageB.value = String(state.pageB);
-    }
-  } else {
-    if (!state.pageCountB) return;
-    const next = Math.min(Math.max(1, page), state.pageCountB);
-    if (next === state.pageB && els.pageB.value === String(next)) {
-      updatePageControls();
-      return;
-    }
-    state.pageB = next;
-    els.pageB.value = String(next);
-    if (syncLinked && els.linkPages.checked && state.pageCountA) {
-      state.pageA = Math.min(next, state.pageCountA);
-      els.pageA.value = String(state.pageA);
-    }
+async function setSharedPage(page, { fit = true } = {}) {
+  const count = sharedPageCount();
+  if (!count) return;
+
+  const next = Math.min(Math.max(1, page), count);
+  const same =
+    (!state.pageCountA || state.pageA === next) &&
+    (!state.pageCountB || state.pageB === next) &&
+    els.pageBoth.value === String(next);
+
+  if (same) {
+    updatePageControls();
+    return;
   }
 
-  // Keep alignment only when both pages stay paired by the same sheet number.
-  // Changing pages usually means a new sheet, so clear alignment.
+  if (state.pageCountA > 0) state.pageA = next;
+  if (state.pageCountB > 0) state.pageB = next;
+  els.pageBoth.value = String(next);
+
+  // Changing sheets usually means a new drawing — clear alignment.
   resetAlignment();
   updatePageControls();
   if (state.docA && state.docB) {
@@ -223,14 +220,8 @@ async function setPage(which, page, { syncLinked = true, fit = true } = {}) {
 }
 
 async function stepPages(delta) {
-  if (els.linkPages.checked && state.pageCountA && state.pageCountB) {
-    const current = Math.min(state.pageA, state.pageB);
-    await setPage("A", current + delta, { syncLinked: true, fit: true });
-    return;
-  }
-  if (state.pageCountA) {
-    await setPage("A", state.pageA + delta, { syncLinked: false, fit: true });
-  }
+  if (!(state.pageCountA > 0 && state.pageCountB > 0)) return;
+  await setSharedPage(sharedPage() + delta, { fit: true });
 }
 
 async function loadPdf(file, which) {
@@ -246,7 +237,6 @@ async function loadPdf(file, which) {
     state.pageCountA = pdf.numPages;
     state.pageA = 1;
     els.nameA.textContent = file.name;
-    fillPageSelect(els.pageA, pdf.numPages, 1);
   } else {
     state.docB = pdf;
     state.bytesB = bytes;
@@ -254,7 +244,13 @@ async function loadPdf(file, which) {
     state.pageCountB = pdf.numPages;
     state.pageB = 1;
     els.nameB.textContent = file.name;
-    fillPageSelect(els.pageB, pdf.numPages, 1);
+  }
+
+  // Keep both on the same sheet once both files are present.
+  if (state.pageCountA > 0 && state.pageCountB > 0) {
+    const page = sharedPage();
+    state.pageA = page;
+    state.pageB = page;
   }
 
   resetAlignment();
@@ -426,9 +422,8 @@ async function refresh(reRender = true, fit = false) {
 
     if (state.alignStep === "idle") {
       setStatus(
-        `Compare ready — A p.${state.pageA}/${state.pageCountA} (red) · ` +
-          `B p.${state.pageB}/${state.pageCountB} (blue). ` +
-          `Use Next page or ← → to flip sheets.`
+        `Compare ready — sheet ${state.pageA} of ${Math.min(state.pageCountA, state.pageCountB)}. ` +
+          `Use ‹ › or ← → to flip both PDFs together.`
       );
     }
     updatePageControls();
@@ -614,29 +609,12 @@ els.fileB.addEventListener("change", async (e) => {
   }
 });
 
-els.pageA.addEventListener("change", async () => {
-  await setPage("A", Number(els.pageA.value) || 1, { syncLinked: true, fit: true });
+els.pageBoth.addEventListener("change", async () => {
+  await setSharedPage(Number(els.pageBoth.value) || 1, { fit: true });
 });
 
-els.pageB.addEventListener("change", async () => {
-  await setPage("B", Number(els.pageB.value) || 1, { syncLinked: true, fit: true });
-});
-
-els.prevA.addEventListener("click", async () => {
-  await setPage("A", state.pageA - 1, { syncLinked: els.linkPages.checked, fit: true });
-});
-els.nextA.addEventListener("click", async () => {
-  await setPage("A", state.pageA + 1, { syncLinked: els.linkPages.checked, fit: true });
-});
-els.prevB.addEventListener("click", async () => {
-  await setPage("B", state.pageB - 1, { syncLinked: els.linkPages.checked, fit: true });
-});
-els.nextB.addEventListener("click", async () => {
-  await setPage("B", state.pageB + 1, { syncLinked: els.linkPages.checked, fit: true });
-});
 els.prevBoth.addEventListener("click", async () => stepPages(-1));
 els.nextBoth.addEventListener("click", async () => stepPages(1));
-els.linkPages.addEventListener("change", () => updatePageControls());
 
 window.addEventListener("keydown", async (event) => {
   if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) {
